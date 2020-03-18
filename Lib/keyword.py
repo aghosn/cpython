@@ -46,6 +46,7 @@ kwlist = [
     'pass',
     'raise',
     'return',
+    'sandbox',
     'try',
     'while',
     'with',

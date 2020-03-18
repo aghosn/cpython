@@ -424,6 +424,8 @@ validate_stmt(stmt_ty stmt)
                 return 0;
         }
         return validate_body(stmt->v.AsyncWith.body, "AsyncWith");
+    case Sandbox_kind: /* ADDED THIS */
+        return validate_body(stmt->v.Sandbox.body, "Sandbox");
     case Raise_kind:
         if (stmt->v.Raise.exc) {
             return validate_expr(stmt->v.Raise.exc, Load) &&
@@ -580,6 +582,7 @@ static stmt_ty ast_for_classdef(struct compiling *, const node *, asdl_seq *);
 
 static stmt_ty ast_for_with_stmt(struct compiling *, const node *, bool);
 static stmt_ty ast_for_for_stmt(struct compiling *, const node *, bool);
+static stmt_ty ast_for_sandbox(struct compiling *, const node *); /* ADDED THIS */
 
 /* Note different signature for ast_for_call */
 static expr_ty ast_for_call(struct compiling *, const node *, expr_ty,
@@ -4431,6 +4434,27 @@ ast_for_with_stmt(struct compiling *c, const node *n0, bool is_async)
                     end_lineno, end_col_offset, c->c_arena);
 }
 
+/* ADDED THIS */
+/* sandbox_stmt: 'sandbox' ':' suite */
+static stmt_ty
+ast_for_sandbox(struct compiling *c, const node *n)
+{
+    /* notes: 
+    * - NCH returns the number of children
+    * - REQ verifies that the node indeed has the expected type
+    */
+    
+    REQ(n, sandbox_stmt);
+
+    body = ast_for_suite(c, CHILD(n, NCH(n) - 1)); 
+    if (!body)
+        return NULL;
+    get_last_end_pos(body, &end_lineno, &end_col_offset);
+
+    return Sandbox(body, LINENO(n), n->col_offset, 
+              end_lineno, end_col_offset, c->c_arena);
+}
+
 static stmt_ty
 ast_for_classdef(struct compiling *c, const node *n, asdl_seq *decorator_seq)
 {
@@ -4564,6 +4588,8 @@ ast_for_stmt(struct compiling *c, const node *n)
                 return ast_for_try_stmt(c, ch);
             case with_stmt:
                 return ast_for_with_stmt(c, ch, 0);
+            case sandbox_stmt: /* ADDED THIS */
+                return ast_for_sandbox(c, ch);
             case funcdef:
                 return ast_for_funcdef(c, ch, NULL);
             case classdef:
