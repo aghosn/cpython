@@ -1199,7 +1199,7 @@ main_loop:
         if (_Py_atomic_load_relaxed(eval_breaker)) {
             opcode = _Py_OPCODE(*next_instr);
             if (opcode == SETUP_FINALLY ||
-                opcode == SETUP_WITH ||
+                opcode == SETUP_WITH ||  /* TODO probably have to add something here */
                 opcode == BEFORE_ASYNC_WITH ||
                 opcode == YIELD_FROM) {
                 /* Few cases where we skip running signal handlers and other
@@ -3251,6 +3251,18 @@ main_loop:
                                STACK_LEVEL());
 
             PUSH(res);
+            DISPATCH();
+        }
+
+        /* ADDED THIS */
+        case TARGET(SETUP_SANDBOX): {
+            if (oparg) {
+              printf("%s\n", "call prolog");
+              fflush(stdout);
+            } else {
+              printf("%s\n", "call epilog");
+              fflush(stdout);
+            }
             DISPATCH();
         }
 

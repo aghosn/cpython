@@ -4443,6 +4443,8 @@ ast_for_sandbox(struct compiling *c, const node *n)
     * - NCH returns the number of children
     * - REQ verifies that the node indeed has the expected type
     */
+    int end_lineno, end_col_offset;
+    asdl_seq *body;
     
     REQ(n, sandbox_stmt);
 
@@ -4451,7 +4453,7 @@ ast_for_sandbox(struct compiling *c, const node *n)
         return NULL;
     get_last_end_pos(body, &end_lineno, &end_col_offset);
 
-    return Sandbox(body, LINENO(n), n->col_offset, 
+    return Sandbox(body, LINENO(n), n->n_col_offset, 
               end_lineno, end_col_offset, c->c_arena);
 }
 

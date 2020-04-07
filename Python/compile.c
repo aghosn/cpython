@@ -209,6 +209,8 @@ static int compiler_call_helper(struct compiler *c, int n,
 static int compiler_try_except(struct compiler *, stmt_ty);
 static int compiler_set_qualname(struct compiler *);
 
+static int compiler_sandbox(struct compiler *, stmt_ty); /* ADDED THIS */
+
 static int compiler_sync_comprehension_generator(
                                       struct compiler *c,
                                       asdl_seq *generators, int gen_index,
@@ -1127,6 +1129,8 @@ stack_effect(int opcode, int oparg, int jump)
         case DICT_MERGE:
         case DICT_UPDATE:
             return -1;
+        case SETUP_SANDBOX: /* elsa: ADDED THIS */
+            return 0;
         default:
             return PY_INVALID_STACK_EFFECT;
     }
@@ -4964,34 +4968,34 @@ compiler_with(struct compiler *c, stmt_ty s, int pos)
     sandbox:
         BLOCK
     is implemented as:
-        ???
+        SETUP_SANDBOX 1
+        <code for BLOCK>
+        SETUP_SANDBOX 0
+
   */
-// TODO add better comment
 static int
 compiler_sandbox(struct compiler *c, stmt_ty s)
 {
-    basicblock *block, *final, *exit;
+    //basicblock *block, *final, *exit;
+    basicblock *block;
 
     assert(s->kind == Sandbox_kind);
 
     block = compiler_new_block(c);
-    final = compiler_new_block(c);
-    exit = compiler_new_block(c);
-    if (!block || !final || !exit)
+    //final = compiler_new_block(c); // can be useful to handle exceptions
+    //exit = compiler_new_block(c);
+    if (!block)
         return 0;
 
-    // ADDOP_JREL ???
-    // create a new op ???
-    // TODO look at what SETUP_WITH does
+    ADDOP_I(c, SETUP_SANDBOX, 1);
   
     compiler_use_next_block(c, block);
 
     /* BLOCK code */
-    VISIT_SEQ(c, stmt, s->v.Sandbox.body); // TODO c'est quoi stmt ??
+    VISIT_SEQ(c, stmt, s->v.Sandbox.body);
 
-    // TODO handle exceptions ?? -> use final block
+    ADDOP_I(c, SETUP_SANDBOX, 0);
 
-    compiler_use_next_block(c, exit);
     return 1;
 }
 
