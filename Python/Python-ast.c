@@ -199,6 +199,7 @@ typedef struct {
     PyObject *level;
     PyObject *lineno;
     PyObject *lower;
+    PyObject *mem;
     PyObject *mod_type;
     PyObject *module;
     PyObject *msg;
@@ -218,6 +219,7 @@ typedef struct {
     PyObject *slice_type;
     PyObject *step;
     PyObject *stmt_type;
+    PyObject *sys;
     PyObject *tag;
     PyObject *target;
     PyObject *targets;
@@ -430,6 +432,7 @@ static int astmodule_clear(PyObject *module)
     Py_CLEAR(astmodulestate(module)->level);
     Py_CLEAR(astmodulestate(module)->lineno);
     Py_CLEAR(astmodulestate(module)->lower);
+    Py_CLEAR(astmodulestate(module)->mem);
     Py_CLEAR(astmodulestate(module)->mod_type);
     Py_CLEAR(astmodulestate(module)->module);
     Py_CLEAR(astmodulestate(module)->msg);
@@ -449,6 +452,7 @@ static int astmodule_clear(PyObject *module)
     Py_CLEAR(astmodulestate(module)->slice_type);
     Py_CLEAR(astmodulestate(module)->step);
     Py_CLEAR(astmodulestate(module)->stmt_type);
+    Py_CLEAR(astmodulestate(module)->sys);
     Py_CLEAR(astmodulestate(module)->tag);
     Py_CLEAR(astmodulestate(module)->target);
     Py_CLEAR(astmodulestate(module)->targets);
@@ -660,6 +664,7 @@ static int astmodule_traverse(PyObject *module, visitproc visit, void* arg)
     Py_VISIT(astmodulestate(module)->level);
     Py_VISIT(astmodulestate(module)->lineno);
     Py_VISIT(astmodulestate(module)->lower);
+    Py_VISIT(astmodulestate(module)->mem);
     Py_VISIT(astmodulestate(module)->mod_type);
     Py_VISIT(astmodulestate(module)->module);
     Py_VISIT(astmodulestate(module)->msg);
@@ -679,6 +684,7 @@ static int astmodule_traverse(PyObject *module, visitproc visit, void* arg)
     Py_VISIT(astmodulestate(module)->slice_type);
     Py_VISIT(astmodulestate(module)->step);
     Py_VISIT(astmodulestate(module)->stmt_type);
+    Py_VISIT(astmodulestate(module)->sys);
     Py_VISIT(astmodulestate(module)->tag);
     Py_VISIT(astmodulestate(module)->target);
     Py_VISIT(astmodulestate(module)->targets);
@@ -766,6 +772,7 @@ static int init_identifiers(void)
     if ((state->level = PyUnicode_InternFromString("level")) == NULL) return 0;
     if ((state->lineno = PyUnicode_InternFromString("lineno")) == NULL) return 0;
     if ((state->lower = PyUnicode_InternFromString("lower")) == NULL) return 0;
+    if ((state->mem = PyUnicode_InternFromString("mem")) == NULL) return 0;
     if ((state->module = PyUnicode_InternFromString("module")) == NULL) return 0;
     if ((state->msg = PyUnicode_InternFromString("msg")) == NULL) return 0;
     if ((state->name = PyUnicode_InternFromString("name")) == NULL) return 0;
@@ -781,6 +788,7 @@ static int init_identifiers(void)
     if ((state->simple = PyUnicode_InternFromString("simple")) == NULL) return 0;
     if ((state->slice = PyUnicode_InternFromString("slice")) == NULL) return 0;
     if ((state->step = PyUnicode_InternFromString("step")) == NULL) return 0;
+    if ((state->sys = PyUnicode_InternFromString("sys")) == NULL) return 0;
     if ((state->tag = PyUnicode_InternFromString("tag")) == NULL) return 0;
     if ((state->target = PyUnicode_InternFromString("target")) == NULL) return 0;
     if ((state->targets = PyUnicode_InternFromString("targets")) == NULL) return 0;
@@ -900,6 +908,8 @@ static const char * const AsyncWith_fields[]={
     "type_comment",
 };
 static const char * const Sandbox_fields[]={
+    "mem",
+    "sys",
     "body",
 };
 static const char * const Raise_fields[]={
@@ -1493,7 +1503,7 @@ static int init_types(void)
                                       AsyncWith_fields, 3);
     if (!state->AsyncWith_type) return 0;
     state->Sandbox_type = make_type("Sandbox", state->stmt_type,
-                                    Sandbox_fields, 1);
+                                    Sandbox_fields, 3);
     if (!state->Sandbox_type) return 0;
     state->Raise_type = make_type("Raise", state->stmt_type, Raise_fields, 2);
     if (!state->Raise_type) return 0;
@@ -2309,14 +2319,26 @@ AsyncWith(asdl_seq * items, asdl_seq * body, string type_comment, int lineno,
 }
 
 stmt_ty
-Sandbox(asdl_seq * body, int lineno, int col_offset, int end_lineno, int
-        end_col_offset, PyArena *arena)
+Sandbox(string mem, string sys, asdl_seq * body, int lineno, int col_offset,
+        int end_lineno, int end_col_offset, PyArena *arena)
 {
     stmt_ty p;
+    if (!mem) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field mem is required for Sandbox");
+        return NULL;
+    }
+    if (!sys) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field sys is required for Sandbox");
+        return NULL;
+    }
     p = (stmt_ty)PyArena_Malloc(arena, sizeof(*p));
     if (!p)
         return NULL;
     p->kind = Sandbox_kind;
+    p->v.Sandbox.mem = mem;
+    p->v.Sandbox.sys = sys;
     p->v.Sandbox.body = body;
     p->lineno = lineno;
     p->col_offset = col_offset;
@@ -3826,6 +3848,16 @@ ast2obj_stmt(void* _o)
         tp = (PyTypeObject *)astmodulestate_global->Sandbox_type;
         result = PyType_GenericNew(tp, NULL, NULL);
         if (!result) goto failed;
+        value = ast2obj_string(o->v.Sandbox.mem);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, astmodulestate_global->mem, value) == -1)
+            goto failed;
+        Py_DECREF(value);
+        value = ast2obj_string(o->v.Sandbox.sys);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, astmodulestate_global->sys, value) == -1)
+            goto failed;
+        Py_DECREF(value);
         value = ast2obj_list(o->v.Sandbox.body, ast2obj_stmt);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, astmodulestate_global->body, value) == -1)
@@ -6715,8 +6747,36 @@ obj2ast_stmt(PyObject* obj, stmt_ty* out, PyArena* arena)
         return 1;
     }
     if (isinstance) {
+        string mem;
+        string sys;
         asdl_seq* body;
 
+        if (_PyObject_LookupAttr(obj, astmodulestate_global->mem, &tmp) < 0) {
+            return 1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"mem\" missing from Sandbox");
+            return 1;
+        }
+        else {
+            int res;
+            res = obj2ast_string(tmp, &mem, arena);
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
+        if (_PyObject_LookupAttr(obj, astmodulestate_global->sys, &tmp) < 0) {
+            return 1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"sys\" missing from Sandbox");
+            return 1;
+        }
+        else {
+            int res;
+            res = obj2ast_string(tmp, &sys, arena);
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
         if (_PyObject_LookupAttr(obj, astmodulestate_global->body, &tmp) < 0) {
             return 1;
         }
@@ -6750,8 +6810,8 @@ obj2ast_stmt(PyObject* obj, stmt_ty* out, PyArena* arena)
             }
             Py_CLEAR(tmp);
         }
-        *out = Sandbox(body, lineno, col_offset, end_lineno, end_col_offset,
-                       arena);
+        *out = Sandbox(mem, sys, body, lineno, col_offset, end_lineno,
+                       end_col_offset, arena);
         if (*out == NULL) goto failed;
         return 0;
     }

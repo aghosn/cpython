@@ -4965,7 +4965,7 @@ compiler_with(struct compiler *c, stmt_ty s, int pos)
 
 /* ADDED THIS */
 /* 
-    sandbox:
+    sandbox(MEM, SYS):
         BLOCK
     is implemented as:
         SETUP_SANDBOX 1
@@ -4986,6 +4986,10 @@ compiler_sandbox(struct compiler *c, stmt_ty s)
     //exit = compiler_new_block(c);
     if (!block)
         return 0;
+
+    /* Load sandbox arguments on the stack */
+    ADDOP_LOAD_CONST(c, s->v.Sandbox.mem);
+    ADDOP_LOAD_CONST(c, s->v.Sandbox.sys);
 
     ADDOP_I(c, SETUP_SANDBOX, 1);
   

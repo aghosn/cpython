@@ -3256,9 +3256,18 @@ main_loop:
 
         /* ADDED THIS */
         case TARGET(SETUP_SANDBOX): {
-            if (oparg) {
-              printf("%s\n", "call prolog");
+            if (oparg) { // TODO do separate functions
+              printf("%s", "call prolog: arg mem=");
+              PyObject *mem = *(stack_pointer - 2);
+              //PyObject  *sys = *(stack_pointer - 1);
+              PyObject_Print(mem, stdout, 0); // convenient but just to print
+              putchar('\n');
+              // TODO how can we process them ? convert them to const char * ? do that earlier ??
+              //const char *mem_str = PyBytes_AS_STRING(PyObject_Str(mem)); // not the correct function... need to search better
+              //printf("%s\n", mem_str);
+              
               fflush(stdout);
+              stack_pointer = stack_pointer-2; // TODO ?? so that they are "consumed"
             } else {
               printf("%s\n", "call epilog");
               fflush(stdout);
