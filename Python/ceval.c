@@ -27,6 +27,8 @@
 #include "setobject.h"
 #include "structmember.h"
 
+#include "sandbox.h" /* ADDED THIS */
+
 #include <ctype.h>
 
 #ifdef Py_DEBUG
@@ -187,6 +189,28 @@ static size_t opcache_global_misses = 0;
 #endif
 #include "pythread.h"
 #include "ceval_gil.h"
+
+
+// elsa: ADDED THIS
+// TODO provisoire, mon but est de le mettre dans un fichier séparé -> later
+int 
+sandbox_prolog(const char *mem, const char *sys) 
+{
+    //mem_view *parsed = parse_memory_view(mem);
+    printf("%s\n", "call prolog");
+    //printf("permissions are %s:%d\n", parsed->name, parsed->perm);
+    fflush(stdout);
+    return 1;
+}
+
+int 
+sandbox_epilog() 
+{
+    printf("%s\n", "call epilog");
+    fflush(stdout);
+    return 1;
+}
+/*************/
 
 int
 PyEval_ThreadsInitialized(void)
@@ -3256,21 +3280,23 @@ main_loop:
 
         /* ADDED THIS */
         case TARGET(SETUP_SANDBOX): {
-            if (oparg) { // TODO do separate functions
-              printf("%s", "call prolog: arg mem=");
+            if (oparg) {
               PyObject *mem = *(stack_pointer - 2);
-              //PyObject  *sys = *(stack_pointer - 1);
-              PyObject_Print(mem, stdout, 0); // convenient but just to print
-              putchar('\n');
-              // TODO how can we process them ? convert them to const char * ? do that earlier ??
-              //const char *mem_str = PyBytes_AS_STRING(PyObject_Str(mem)); // not the correct function... need to search better
-              //printf("%s\n", mem_str);
-              
-              fflush(stdout);
+              PyObject  *sys = *(stack_pointer - 1);
+
+              // TODO a bit long and repetitive... create a function ? -> later
+              const char *mem_str = PyBytes_AS_STRING(
+                  PyUnicode_AsEncodedString(
+                    PyObject_Str(mem), "utf-8", "backslashreplace"));
+              const char *sys_str = PyBytes_AS_STRING(
+                  PyUnicode_AsEncodedString(
+                    PyObject_Str(sys), "utf-8", "backslashreplace"));
+
+              sandbox_prolog(mem_str, sys_str);
               stack_pointer = stack_pointer-2; // TODO ?? so that they are "consumed"
             } else {
-              printf("%s\n", "call epilog");
-              fflush(stdout);
+              // TODO on a besoin de mem/sys à nouveau?
+              sandbox_epilog();
             }
             DISPATCH();
         }
