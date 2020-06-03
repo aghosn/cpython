@@ -191,27 +191,6 @@ static size_t opcache_global_misses = 0;
 #include "ceval_gil.h"
 
 
-// elsa: ADDED THIS
-// TODO provisoire, mon but est de le mettre dans un fichier séparé -> later
-int 
-sandbox_prolog(const char *mem, const char *sys) 
-{
-    //mem_view *parsed = parse_memory_view(mem);
-    printf("%s\n", "call prolog");
-    //printf("permissions are %s:%d\n", parsed->name, parsed->perm);
-    fflush(stdout);
-    return 1;
-}
-
-int 
-sandbox_epilog() 
-{
-    printf("%s\n", "call epilog");
-    fflush(stdout);
-    return 1;
-}
-/*************/
-
 int
 PyEval_ThreadsInitialized(void)
 {
@@ -2975,6 +2954,7 @@ main_loop:
             PyObject *fromlist = POP();
             PyObject *level = TOP();
             PyObject *res;
+
             res = import_name(tstate, f, name, fromlist, level);
             Py_DECREF(level);
             Py_DECREF(fromlist);
@@ -3285,17 +3265,17 @@ main_loop:
               PyObject  *sys = *(stack_pointer - 1);
 
               // TODO a bit long and repetitive... create a function ? -> later
-              const char *mem_str = PyBytes_AS_STRING(
+              /*const char *mem_str = PyBytes_AS_STRING(
                   PyUnicode_AsEncodedString(
                     PyObject_Str(mem), "utf-8", "backslashreplace"));
               const char *sys_str = PyBytes_AS_STRING(
                   PyUnicode_AsEncodedString(
-                    PyObject_Str(sys), "utf-8", "backslashreplace"));
+                    PyObject_Str(sys), "utf-8", "backslashreplace"));*/
+              // -> don't need const char * after all
 
-              sandbox_prolog(mem_str, sys_str);
-              stack_pointer = stack_pointer-2; // TODO ?? so that they are "consumed"
+              sandbox_prolog(f, mem, sys);
+              stack_pointer = stack_pointer-2; // TODO so that they are "consumed" -> must exist a cleaner way
             } else {
-              // TODO on a besoin de mem/sys à nouveau?
               sandbox_epilog();
             }
             DISPATCH();

@@ -4963,11 +4963,12 @@ compiler_with(struct compiler *c, stmt_ty s, int pos)
     return 1;
 }
 
-/* ADDED THIS */
+/* (elsa) ADDED THIS */
 /* 
     sandbox(MEM, SYS):
         BLOCK
     is implemented as:
+        LOAD_CONST (MEM, SYS)
         SETUP_SANDBOX 1
         <code for BLOCK>
         SETUP_SANDBOX 0
@@ -4976,22 +4977,27 @@ compiler_with(struct compiler *c, stmt_ty s, int pos)
 static int
 compiler_sandbox(struct compiler *c, stmt_ty s)
 {
-    //basicblock *block, *final, *exit;
     basicblock *block;
 
     assert(s->kind == Sandbox_kind);
 
     block = compiler_new_block(c);
-    //final = compiler_new_block(c); // can be useful to handle exceptions
-    //exit = compiler_new_block(c);
-    if (!block)
+    
+    if (!block) {
         return 0;
+    }
 
     /* Load sandbox arguments on the stack */
     ADDOP_LOAD_CONST(c, s->v.Sandbox.mem);
     ADDOP_LOAD_CONST(c, s->v.Sandbox.sys);
 
     ADDOP_I(c, SETUP_SANDBOX, 1);
+
+    // This was a test to use a structure in the interpreter
+    /*PyObject *sandboxes = _PyInterpreterState_GET_UNSAFE()->sandboxes;
+    if (PyDict_SetItemString(sandboxes, "test", s->v.Sandbox.mem) < 0) { // TODO put sandbox id instead of test
+        return 0;
+    }*/
   
     compiler_use_next_block(c, block);
 
