@@ -4435,10 +4435,10 @@ ast_for_with_stmt(struct compiling *c, const node *n0, bool is_async)
 }
 
 /* ***** */
-/* ADDED THIS */
+/* (elsa) ADDED THIS */
 
-/* Done this simple function to do quickly the job, but unlike parsestr it does not perform any check whatsoever */
-/* Just put it there, although it is for sure not the best place */
+/* Done this simple function to do quickly the job, but unlike parsestr it does
+   not perform any check whatsoever and it is probably not the best place */
 static string
 quick_decode_string(const char *s, struct compiling *c)
 {
@@ -4458,17 +4458,12 @@ static stmt_ty
 ast_for_sandbox(struct compiling *c, const node *n)
 {
     /* notes: 
-    * - NCH returns the number of children
-    * - REQ verifies that the node indeed has the expected type
+     - NCH returns the number of children
+     - REQ verifies that the node indeed has the expected type
     */
     int end_lineno, end_col_offset;
     asdl_seq *body;
 
-    /*PyObject *mem, *sys;
-    int bytesmode, rawmode;
-    const char *fstr;
-    Py_ssize_t fstrlen = -1;*/ // TODO handle cases where the string might be bytes & Cie ?
-    
     REQ(n, sandbox_stmt);
 
     /* Handle mem and sys strings */
@@ -4478,10 +4473,6 @@ ast_for_sandbox(struct compiling *c, const node *n)
     REQ(n_sys, STRING);
     string mem = quick_decode_string(STR(n_mem), c);
     string sys = quick_decode_string(STR(n_sys), c);
-
-    /*if (parsestr(c, CHILD(n, 2), &bytesmode, &rawmode, &mem, // TODO might be better, but definitely not cleaner...
-                    &fstr, &fstrlen) != 0)
-        goto error;*/
 
     body = ast_for_suite(c, CHILD(n, NCH(n) - 1)); 
     if (!body)

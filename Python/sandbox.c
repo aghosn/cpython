@@ -8,7 +8,13 @@
 int 
 sandbox_prolog(PyFrameObject *f, PyObject *mem, PyObject *sys) 
 {
-    
+  /* NOTE: f has the following interesting fields (defined in Include/cpython/frameobject.h):
+      - PyObject *f_locals   : local symbol table
+      - PyObject *f_globals  : global symbol table
+      - PyObject *f_builtins : builtin symbol table
+     and all of them are needed for the execution 
+    */
+
     printf("%s\n", "call prolog");
     fflush(stdout);
     return 1;

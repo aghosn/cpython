@@ -3261,22 +3261,12 @@ main_loop:
         /* ADDED THIS */
         case TARGET(SETUP_SANDBOX): {
             if (oparg) {
-              PyObject *mem = *(stack_pointer - 2);
-              PyObject  *sys = *(stack_pointer - 1);
+                PyObject *sys = POP();
+                PyObject *mem = POP();
 
-              // TODO a bit long and repetitive... create a function ? -> later
-              /*const char *mem_str = PyBytes_AS_STRING(
-                  PyUnicode_AsEncodedString(
-                    PyObject_Str(mem), "utf-8", "backslashreplace"));
-              const char *sys_str = PyBytes_AS_STRING(
-                  PyUnicode_AsEncodedString(
-                    PyObject_Str(sys), "utf-8", "backslashreplace"));*/
-              // -> don't need const char * after all
-
-              sandbox_prolog(f, mem, sys);
-              stack_pointer = stack_pointer-2; // TODO so that they are "consumed" -> must exist a cleaner way
+                sandbox_prolog(f, mem, sys);
             } else {
-              sandbox_epilog();
+                sandbox_epilog();
             }
             DISPATCH();
         }

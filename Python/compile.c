@@ -4993,16 +4993,12 @@ compiler_sandbox(struct compiler *c, stmt_ty s)
 
     ADDOP_I(c, SETUP_SANDBOX, 1);
 
-    // This was a test to use a structure in the interpreter
-    /*PyObject *sandboxes = _PyInterpreterState_GET_UNSAFE()->sandboxes;
-    if (PyDict_SetItemString(sandboxes, "test", s->v.Sandbox.mem) < 0) { // TODO put sandbox id instead of test
-        return 0;
-    }*/
-  
     compiler_use_next_block(c, block);
 
     /* BLOCK code */
-    VISIT_SEQ(c, stmt, s->v.Sandbox.body);
+    VISIT_SEQ(c, stmt, s->v.Sandbox.body); // TODO maybe compile differently in order
+       // to remember which packages are used ? (i.e. which names are loaded that
+       // correspond to modules... but this seems a bit wanky)
 
     ADDOP_I(c, SETUP_SANDBOX, 0);
 
