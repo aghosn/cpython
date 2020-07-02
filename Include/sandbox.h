@@ -5,7 +5,7 @@ extern "C" {
 #endif
 
 /* Support for sandboxes */
-int sandbox_prolog(PyFrameObject *, PyObject *, PyObject *); 
+int sandbox_prolog(PyThreadState *, PyObject *, PyObject *); 
 int sandbox_epilog(void); // TODO needs arguments ?
 
 #ifdef __cplusplus

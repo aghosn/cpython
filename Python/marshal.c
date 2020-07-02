@@ -1334,6 +1334,7 @@ r_object(RFILE *p)
             PyObject *varnames = NULL;
             PyObject *freevars = NULL;
             PyObject *cellvars = NULL;
+            PyObject *sandboxes = NULL; // ADDED THIS
             PyObject *filename = NULL;
             PyObject *name = NULL;
             int firstlineno;
@@ -1383,6 +1384,9 @@ r_object(RFILE *p)
             cellvars = r_object(p);
             if (cellvars == NULL)
                 goto code_error;
+            sandboxes = PySet_New(NULL); // ADDED THIS: TODO should leave it NULL and remove later check ?
+            if (sandboxes == NULL)
+                goto code_error;
             filename = r_object(p);
             if (filename == NULL)
                 goto code_error;
@@ -1399,8 +1403,8 @@ r_object(RFILE *p)
             v = (PyObject *) PyCode_NewWithPosOnlyArgs(
                             argcount, posonlyargcount, kwonlyargcount,
                             nlocals, stacksize, flags,
-                            code, consts, names, varnames,
-                            freevars, cellvars, filename, name,
+                            code, consts, names, varnames, freevars, 
+                            cellvars, sandboxes, filename, name,
                             firstlineno, lnotab);
             v = r_ref_insert(v, idx, flag, p);
 
@@ -1411,6 +1415,7 @@ r_object(RFILE *p)
             Py_XDECREF(varnames);
             Py_XDECREF(freevars);
             Py_XDECREF(cellvars);
+            Py_XDECREF(sandboxes);
             Py_XDECREF(filename);
             Py_XDECREF(name);
             Py_XDECREF(lnotab);
