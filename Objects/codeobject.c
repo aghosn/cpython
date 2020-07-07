@@ -647,9 +647,8 @@ code_replace_impl(PyCodeObject *self, int co_argcount,
                   int co_firstlineno, PyBytesObject *co_code,
                   PyObject *co_consts, PyObject *co_names,
                   PyObject *co_varnames, PyObject *co_freevars,
-                  PyObject *co_cellvars, PyObject *co_sanboxes, 
-                  PyObject *co_filename, PyObject *co_name, 
-                  PyBytesObject *co_lnotab)
+                  PyObject *co_cellvars, PyObject *co_filename, 
+                  PyObject *co_name, PyBytesObject *co_lnotab)
 /*[clinic end generated code: output=25c8e303913bcace input=d9051bc8f24e6b28]*/
 {
 #define CHECK_INT_ARG(ARG) \
@@ -679,7 +678,7 @@ code_replace_impl(PyCodeObject *self, int co_argcount,
     return (PyObject *)PyCode_NewWithPosOnlyArgs(
         co_argcount, co_posonlyargcount, co_kwonlyargcount, co_nlocals,
         co_stacksize, co_flags, (PyObject*)co_code, co_consts, co_names,
-        co_varnames, co_freevars, co_cellvars, co_sandboxes, co_filename, co_name, 
+        co_varnames, co_freevars, co_cellvars, PyDict_New(), co_filename, co_name, // TODO handle sandboxes better
         co_firstlineno, (PyObject*)co_lnotab);
 }
 
