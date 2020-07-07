@@ -228,6 +228,7 @@ typedef struct {
     PyObject *type_comment;
     PyObject *type_ignore_type;
     PyObject *type_ignores;
+    PyObject *uid;
     PyObject *unaryop_type;
     PyObject *upper;
     PyObject *value;
@@ -461,6 +462,7 @@ static int astmodule_clear(PyObject *module)
     Py_CLEAR(astmodulestate(module)->type_comment);
     Py_CLEAR(astmodulestate(module)->type_ignore_type);
     Py_CLEAR(astmodulestate(module)->type_ignores);
+    Py_CLEAR(astmodulestate(module)->uid);
     Py_CLEAR(astmodulestate(module)->unaryop_type);
     Py_CLEAR(astmodulestate(module)->upper);
     Py_CLEAR(astmodulestate(module)->value);
@@ -693,6 +695,7 @@ static int astmodule_traverse(PyObject *module, visitproc visit, void* arg)
     Py_VISIT(astmodulestate(module)->type_comment);
     Py_VISIT(astmodulestate(module)->type_ignore_type);
     Py_VISIT(astmodulestate(module)->type_ignores);
+    Py_VISIT(astmodulestate(module)->uid);
     Py_VISIT(astmodulestate(module)->unaryop_type);
     Py_VISIT(astmodulestate(module)->upper);
     Py_VISIT(astmodulestate(module)->value);
@@ -796,6 +799,7 @@ static int init_identifiers(void)
     if ((state->type = PyUnicode_InternFromString("type")) == NULL) return 0;
     if ((state->type_comment = PyUnicode_InternFromString("type_comment")) == NULL) return 0;
     if ((state->type_ignores = PyUnicode_InternFromString("type_ignores")) == NULL) return 0;
+    if ((state->uid = PyUnicode_InternFromString("uid")) == NULL) return 0;
     if ((state->upper = PyUnicode_InternFromString("upper")) == NULL) return 0;
     if ((state->value = PyUnicode_InternFromString("value")) == NULL) return 0;
     if ((state->values = PyUnicode_InternFromString("values")) == NULL) return 0;
@@ -908,6 +912,7 @@ static const char * const AsyncWith_fields[]={
     "type_comment",
 };
 static const char * const Sandbox_fields[]={
+    "uid",
     "mem",
     "sys",
     "body",
@@ -1503,7 +1508,7 @@ static int init_types(void)
                                       AsyncWith_fields, 3);
     if (!state->AsyncWith_type) return 0;
     state->Sandbox_type = make_type("Sandbox", state->stmt_type,
-                                    Sandbox_fields, 3);
+                                    Sandbox_fields, 4);
     if (!state->Sandbox_type) return 0;
     state->Raise_type = make_type("Raise", state->stmt_type, Raise_fields, 2);
     if (!state->Raise_type) return 0;
@@ -2319,10 +2324,15 @@ AsyncWith(asdl_seq * items, asdl_seq * body, string type_comment, int lineno,
 }
 
 stmt_ty
-Sandbox(string mem, string sys, asdl_seq * body, int lineno, int col_offset,
-        int end_lineno, int end_col_offset, PyArena *arena)
+Sandbox(constant uid, string mem, string sys, asdl_seq * body, int lineno, int
+        col_offset, int end_lineno, int end_col_offset, PyArena *arena)
 {
     stmt_ty p;
+    if (!uid) {
+        PyErr_SetString(PyExc_ValueError,
+                        "field uid is required for Sandbox");
+        return NULL;
+    }
     if (!mem) {
         PyErr_SetString(PyExc_ValueError,
                         "field mem is required for Sandbox");
@@ -2337,6 +2347,7 @@ Sandbox(string mem, string sys, asdl_seq * body, int lineno, int col_offset,
     if (!p)
         return NULL;
     p->kind = Sandbox_kind;
+    p->v.Sandbox.uid = uid;
     p->v.Sandbox.mem = mem;
     p->v.Sandbox.sys = sys;
     p->v.Sandbox.body = body;
@@ -3848,6 +3859,11 @@ ast2obj_stmt(void* _o)
         tp = (PyTypeObject *)astmodulestate_global->Sandbox_type;
         result = PyType_GenericNew(tp, NULL, NULL);
         if (!result) goto failed;
+        value = ast2obj_constant(o->v.Sandbox.uid);
+        if (!value) goto failed;
+        if (PyObject_SetAttr(result, astmodulestate_global->uid, value) == -1)
+            goto failed;
+        Py_DECREF(value);
         value = ast2obj_string(o->v.Sandbox.mem);
         if (!value) goto failed;
         if (PyObject_SetAttr(result, astmodulestate_global->mem, value) == -1)
@@ -6747,10 +6763,24 @@ obj2ast_stmt(PyObject* obj, stmt_ty* out, PyArena* arena)
         return 1;
     }
     if (isinstance) {
+        constant uid;
         string mem;
         string sys;
         asdl_seq* body;
 
+        if (_PyObject_LookupAttr(obj, astmodulestate_global->uid, &tmp) < 0) {
+            return 1;
+        }
+        if (tmp == NULL) {
+            PyErr_SetString(PyExc_TypeError, "required field \"uid\" missing from Sandbox");
+            return 1;
+        }
+        else {
+            int res;
+            res = obj2ast_constant(tmp, &uid, arena);
+            if (res != 0) goto failed;
+            Py_CLEAR(tmp);
+        }
         if (_PyObject_LookupAttr(obj, astmodulestate_global->mem, &tmp) < 0) {
             return 1;
         }
@@ -6810,7 +6840,7 @@ obj2ast_stmt(PyObject* obj, stmt_ty* out, PyArena* arena)
             }
             Py_CLEAR(tmp);
         }
-        *out = Sandbox(mem, sys, body, lineno, col_offset, end_lineno,
+        *out = Sandbox(uid, mem, sys, body, lineno, col_offset, end_lineno,
                        end_col_offset, arena);
         if (*out == NULL) goto failed;
         return 0;

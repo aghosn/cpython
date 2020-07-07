@@ -16,9 +16,9 @@ sandbox_prolog(PyThreadState *tstate, PyObject *mem, PyObject *sys)
     */
 
     printf("%s\n", "call prolog");
-    printf("dependencies are: ");
-    PyObject_Print(tstate->interp->dependencies, stdout, 0);
-    putchar('\n');
+    //printf("dependencies are: ");
+    //PyObject_Print(tstate->interp->dependencies, stdout, 0);
+    //putchar('\n');
     fflush(stdout);
     return 1;
 }

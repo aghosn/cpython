@@ -569,6 +569,7 @@ struct compiling {
     PyObject *c_filename; /* filename */
     PyObject *c_normalize; /* Normalization function from unicodedata. */
     int c_feature_version; /* Latest minor version of Python for allowed features */
+    long c_sandbox_id_counter; /* ADDED THIS: Generator of sandboxes identifiers */
 };
 
 static asdl_seq *seq_for_testlist(struct compiling *, const node *);
@@ -790,6 +791,7 @@ PyAST_FromNodeObject(const node *n, PyCompilerFlags *flags,
     c.c_filename = filename;
     c.c_normalize = NULL;
     c.c_feature_version = flags ? flags->cf_feature_version : PY_MINOR_VERSION;
+    c.c_sandbox_id_counter = 0L; // ADDED THIS
 
     if (TYPE(n) == encoding_decl)
         n = CHILD(n, 0);
@@ -4452,6 +4454,31 @@ quick_decode_string(const char *s, struct compiling *c)
     return res;
 }
 
+static PyObject*
+sandbox_generate_id(struct compiling *c) {
+    PyObject *id;
+
+    id = PyLong_FromLong(c->c_sandbox_id_counter);
+    if (id == NULL) {
+        return NULL;
+    }
+    /*counter = PyObject_Str(counter);
+    if (counter == NULL) {
+        return NULL;
+    }
+    id = PyUnicode_Concat(c->c_filename, counter);
+    // TODO check if NULL and react appropriately?
+    if (id == NULL) {
+        return NULL;
+    }*/
+    if (PyArena_AddPyObject(c->c_arena, id) < 0) {
+        Py_DECREF(id);
+        return NULL;
+    }
+    c->c_sandbox_id_counter += 1;
+    return id;
+}
+
 
 /* sandbox_stmt: 'sandbox' '(' STRING ',' STRING ')' ':' suite */
 static stmt_ty
@@ -4463,10 +4490,11 @@ ast_for_sandbox(struct compiling *c, const node *n)
     */
     int end_lineno, end_col_offset;
     asdl_seq *body;
+    constant id;
 
     REQ(n, sandbox_stmt);
 
-    /* Handle mem and sys strings */
+    /* Handle mem and sys strings */ // TODO do it better
     const node *n_mem = CHILD(n,2);
     const node *n_sys = CHILD(n,4);
     REQ(n_mem, STRING);
@@ -4474,12 +4502,18 @@ ast_for_sandbox(struct compiling *c, const node *n)
     string mem = quick_decode_string(STR(n_mem), c);
     string sys = quick_decode_string(STR(n_sys), c);
 
-    body = ast_for_suite(c, CHILD(n, NCH(n) - 1)); 
-    if (!body)
+    /* Generate id */
+    id = sandbox_generate_id(c);
+    if (id == NULL) {
         return NULL;
+    }
+    body = ast_for_suite(c, CHILD(n, NCH(n) - 1)); 
+    if (body == NULL) {
+        return NULL;
+    }
     get_last_end_pos(body, &end_lineno, &end_col_offset);
 
-    return Sandbox(mem, sys, body, LINENO(n), n->n_col_offset, 
+    return Sandbox(id, mem, sys, body, LINENO(n), n->n_col_offset,  
               end_lineno, end_col_offset, c->c_arena);
 }
 
