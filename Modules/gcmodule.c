@@ -2204,7 +2204,7 @@ PyObject_GC_UnTrack(void *op_raw)
 }
 
 static PyObject *
-_PyObject_GC_Alloc(int use_calloc, size_t basicsize)
+_PyObject_GC_Alloc(int use_calloc, size_t basicsize, int aligned)
 {
     PyThreadState *tstate = _PyThreadState_GET();
     GCState *gcstate = &tstate->interp->gc;
@@ -2218,7 +2218,12 @@ _PyObject_GC_Alloc(int use_calloc, size_t basicsize)
         g = (PyGC_Head *)PyObject_Calloc(1, size);
     }
     else {
-        g = (PyGC_Head *)PyObject_Malloc(size);
+        if (aligned) {
+            g = (PyGC_Head *)PyObject_MallocAligned(size);
+        }
+        else {
+            g = (PyGC_Head *)PyObject_Malloc(size);
+        }
     }
     if (g == NULL) {
         return _PyErr_NoMemory(tstate);
@@ -2243,21 +2248,21 @@ _PyObject_GC_Alloc(int use_calloc, size_t basicsize)
 }
 
 PyObject *
-_PyObject_GC_Malloc(size_t basicsize)
+_PyObject_GC_Malloc(size_t basicsize, int aligned)
 {
-    return _PyObject_GC_Alloc(0, basicsize);
+    return _PyObject_GC_Alloc(0, basicsize, aligned);
 }
 
 PyObject *
 _PyObject_GC_Calloc(size_t basicsize)
 {
-    return _PyObject_GC_Alloc(1, basicsize);
+    return _PyObject_GC_Alloc(1, basicsize, 0); // (elsa) ADDED default arg
 }
 
 PyObject *
-_PyObject_GC_New(PyTypeObject *tp)
+_PyObject_GC_New(PyTypeObject *tp, int aligned) // (elsa) ADDED arg
 {
-    PyObject *op = _PyObject_GC_Malloc(_PyObject_SIZE(tp));
+    PyObject *op = _PyObject_GC_Malloc(_PyObject_SIZE(tp), aligned);
     if (op != NULL)
         op = PyObject_INIT(op, tp);
     return op;
@@ -2274,7 +2279,7 @@ _PyObject_GC_NewVar(PyTypeObject *tp, Py_ssize_t nitems)
         return NULL;
     }
     size = _PyObject_VAR_SIZE(tp, nitems);
-    op = (PyVarObject *) _PyObject_GC_Malloc(size);
+    op = (PyVarObject *) _PyObject_GC_Malloc(size, 0); // (elsa) ADDED default arg 
     if (op != NULL)
         op = PyObject_INIT_VAR(op, tp, nitems);
     return op;

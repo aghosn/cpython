@@ -93,7 +93,7 @@ PyObject *
 PyModule_NewObject(PyObject *name)
 {
     PyModuleObject *m;
-    m = PyObject_GC_New(PyModuleObject, &PyModule_Type);
+    m = PyObject_GC_NewAligned(PyModuleObject, &PyModule_Type); // (elsa) CHANGED THIS
     if (m == NULL)
         return NULL;
     m->md_def = NULL;

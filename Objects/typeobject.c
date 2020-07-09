@@ -1012,7 +1012,7 @@ PyType_GenericAlloc(PyTypeObject *type, Py_ssize_t nitems)
     /* note that we need to add one, for the sentinel */
 
     if (PyType_IS_GC(type))
-        obj = _PyObject_GC_Malloc(size);
+        obj = _PyObject_GC_Malloc(size, 0); // (elsa) ADDED default arg 
     else
         obj = (PyObject *)PyObject_MALLOC(size);
 

@@ -95,6 +95,7 @@ PyObject_{New, NewVar, Del}.
    the raw memory.
 */
 PyAPI_FUNC(void *) PyObject_Malloc(size_t size);
+void * PyObject_MallocAligned(size_t size); // (elsa) ADDED THIS (should also be API?)
 #if !defined(Py_LIMITED_API) || Py_LIMITED_API+0 >= 0x03050000
 PyAPI_FUNC(void *) PyObject_Calloc(size_t nelem, size_t elsize);
 #endif
@@ -218,7 +219,7 @@ PyAPI_FUNC(PyVarObject *) _PyObject_GC_Resize(PyVarObject *, Py_ssize_t);
 
 
 
-PyAPI_FUNC(PyObject *) _PyObject_GC_New(PyTypeObject *);
+PyAPI_FUNC(PyObject *) _PyObject_GC_New(PyTypeObject *, int);
 PyAPI_FUNC(PyVarObject *) _PyObject_GC_NewVar(PyTypeObject *, Py_ssize_t);
 
 /* Tell the GC to track this object.
@@ -234,7 +235,9 @@ PyAPI_FUNC(void) PyObject_GC_UnTrack(void *);
 PyAPI_FUNC(void) PyObject_GC_Del(void *);
 
 #define PyObject_GC_New(type, typeobj) \
-                ( (type *) _PyObject_GC_New(typeobj) )
+                ( (type *) _PyObject_GC_New(typeobj, 0) )
+#define PyObject_GC_NewAligned(type, typeobj) \
+                ( (type *) _PyObject_GC_New(typeobj, 1) ) // (elsa) ADDED THIS
 #define PyObject_GC_NewVar(type, typeobj, n) \
                 ( (type *) _PyObject_GC_NewVar((typeobj), (n)) )
 

@@ -99,6 +99,29 @@ _PyMem_RawMalloc(void *ctx, size_t size)
     return malloc(size);
 }
 
+/* (elsa) ADDED THIS */
+static void *
+_PyMem_RawMallocAligned(size_t size) // TODO what is the ctx for??
+{
+    void *memptr;
+    int ret;
+
+    if (size == 0)
+        size = 1; // same as malloc, a bit undefined
+
+    /*memptr = NULL;
+    ret = posix_memalign(&memptr, sysconf(_SC_PAGESIZE), size);
+    if (ret == EINVAL) {
+        // TODO better error? don't care?
+        fprintf(stderr, "memalign: invalid alignment\n");
+    }
+
+    return memptr; // should leave it unchanged if error, so would be NULL
+    */
+    return malloc(size);
+}
+/* ----------------- */
+
 static void *
 _PyMem_RawCalloc(void *ctx, size_t nelem, size_t elsize)
 {
@@ -684,6 +707,17 @@ PyObject_Malloc(size_t size)
         return NULL;
     return _PyObject.malloc(_PyObject.ctx, size);
 }
+
+/* (elsa) ADDED THIS */
+void *
+PyObject_MallocAligned(size_t size)
+{
+    if (size > (size_t)PY_SSIZE_T_MAX)
+        return NULL;
+    return _PyObject.malloc(_PyObject.ctx, size);
+    //return _PyMem_RawMallocAligned(size); // TODO too much of a shortcut, do nice steps and checks as for regular malloc
+}
+/* ----------------- */
 
 void *
 PyObject_Calloc(size_t nelem, size_t elsize)
