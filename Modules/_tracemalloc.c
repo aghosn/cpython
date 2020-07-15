@@ -280,7 +280,7 @@ hashtable_new(size_t key_size, size_t data_size,
 static void*
 raw_malloc(size_t size)
 {
-    return allocators.raw.malloc(allocators.raw.ctx, size);
+    return allocators.raw.malloc(allocators.raw.ctx, size, 0); // (elsa) ADDED default arg
 }
 
 static void
@@ -665,7 +665,7 @@ tracemalloc_alloc(int use_calloc, void *ctx, size_t nelem, size_t elsize)
     if (use_calloc)
         ptr = alloc->calloc(alloc->ctx, nelem, elsize);
     else
-        ptr = alloc->malloc(alloc->ctx, nelem * elsize);
+        ptr = alloc->malloc(alloc->ctx, nelem * elsize, 0); // (elsa) ADDED default arg
     if (ptr == NULL)
         return NULL;
 
@@ -761,7 +761,7 @@ tracemalloc_alloc_gil(int use_calloc, void *ctx, size_t nelem, size_t elsize)
         if (use_calloc)
             return alloc->calloc(alloc->ctx, nelem, elsize);
         else
-            return alloc->malloc(alloc->ctx, nelem * elsize);
+            return alloc->malloc(alloc->ctx, nelem * elsize, 0); // (elsa) ADDED default arg
     }
 
     /* Ignore reentrant call. PyObjet_Malloc() calls PyMem_Malloc() for
@@ -777,7 +777,7 @@ tracemalloc_alloc_gil(int use_calloc, void *ctx, size_t nelem, size_t elsize)
 
 
 static void*
-tracemalloc_malloc_gil(void *ctx, size_t size)
+tracemalloc_malloc_gil(void *ctx, size_t size, int aligned) // (elsa) ADDED arg
 {
     return tracemalloc_alloc_gil(0, ctx, 1, size);
 }
@@ -835,7 +835,7 @@ tracemalloc_raw_alloc(int use_calloc, void *ctx, size_t nelem, size_t elsize)
         if (use_calloc)
             return alloc->calloc(alloc->ctx, nelem, elsize);
         else
-            return alloc->malloc(alloc->ctx, nelem * elsize);
+            return alloc->malloc(alloc->ctx, nelem * elsize, 0); // (elsa) ADDED default arg
     }
 
     /* Ignore reentrant call. PyGILState_Ensure() may call PyMem_RawMalloc()
@@ -853,7 +853,7 @@ tracemalloc_raw_alloc(int use_calloc, void *ctx, size_t nelem, size_t elsize)
 
 
 static void*
-tracemalloc_raw_malloc(void *ctx, size_t size)
+tracemalloc_raw_malloc(void *ctx, size_t size, int aligned) // (elsa) ADDED arg
 {
     return tracemalloc_raw_alloc(0, ctx, 1, size);
 }

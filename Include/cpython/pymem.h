@@ -55,7 +55,7 @@ typedef struct {
     void *ctx;
 
     /* allocate a memory block */
-    void* (*malloc) (void *ctx, size_t size);
+    void* (*malloc) (void *ctx, size_t size, int aligned); // (elsa) ADDED arg
 
     /* allocate a memory block initialized by zeros */
     void* (*calloc) (void *ctx, size_t nelem, size_t elsize);
