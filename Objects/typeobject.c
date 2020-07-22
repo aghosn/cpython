@@ -11,6 +11,8 @@
 
 #include <ctype.h>
 
+#include "smalloc.h" // (elsa) ADDED THIS
+
 /*[clinic input]
 class type "PyTypeObject *" "&PyType_Type"
 class object "PyObject *" "&PyBaseObject_Type"
@@ -1011,8 +1013,23 @@ PyType_GenericAlloc(PyTypeObject *type, Py_ssize_t nitems)
     const size_t size = _PyObject_VAR_SIZE(type, nitems+1);
     /* note that we need to add one, for the sentinel */
 
-    if (PyType_IS_GC(type))
-        obj = _PyObject_GC_Malloc(size, type == &PyModule_Type); // (elsa) ADDED arg 
+    if (PyType_IS_GC(type)) {
+        if (type == &PyModule_Type) {
+            PyInterpreterState *interp = _PyInterpreterState_Get();
+            int64_t id = interp->genmd_id++;
+
+            sm_add_pool(id, 2*sysconf(_SC_PAGESIZE)); // TODO have a default size ? make it dynamic ??
+
+            //obj = _PyObject_GC_Malloc(size, 1); // TODO change arg
+
+            // TODO: add ID on top of stack
+            interp->md_ids.stack[interp->md_ids.sp++] = id;
+
+        }
+        //else {
+            obj = _PyObject_GC_Malloc(size, 0); // TODO change arg
+        //}
+    }
     else
         obj = (PyObject *)PyObject_MALLOC(size);
 

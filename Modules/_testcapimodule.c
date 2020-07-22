@@ -3770,12 +3770,12 @@ typedef struct {
     void *ctx;
 } alloc_hook_t;
 
-static void* hook_malloc(void* ctx, size_t size)
+static void* hook_malloc(void* ctx, size_t size, int aligned) // (elsa) ADDED arg to respect API
 {
     alloc_hook_t *hook = (alloc_hook_t *)ctx;
     hook->ctx = ctx;
     hook->malloc_size = size;
-    return hook->alloc.malloc(hook->alloc.ctx, size);
+    return hook->alloc.malloc(hook->alloc.ctx, size, aligned);
 }
 
 static void* hook_calloc(void* ctx, size_t nelem, size_t elsize)
@@ -3979,13 +3979,13 @@ fm_nomemory(void)
 }
 
 static void *
-hook_fmalloc(void *ctx, size_t size)
+hook_fmalloc(void *ctx, size_t size, int aligned) // (elsa) ADDED arg to respect API
 {
     PyMemAllocatorEx *alloc = (PyMemAllocatorEx *)ctx;
     if (fm_nomemory()) {
         return NULL;
     }
-    return alloc->malloc(alloc->ctx, size);
+    return alloc->malloc(alloc->ctx, size, aligned);
 }
 
 static void *

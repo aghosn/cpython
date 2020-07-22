@@ -540,7 +540,7 @@ w_complex_object(PyObject *v, char flag, WFILE *p)
         w_object(co->co_names, p);
         w_object(co->co_varnames, p);
         w_object(co->co_freevars, p);
-        w_object(co->co_cellvars, p);
+        w_object(co->co_cellvars, p); //TODO add sandboxes here too (?)
         w_object(co->co_filename, p);
         w_object(co->co_name, p);
         w_long(co->co_firstlineno, p);

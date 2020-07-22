@@ -2,6 +2,7 @@
 #include "pycore_pymem.h"
 
 #include <stdbool.h>
+#include "smalloc.h" // (elsa) ADDED THIS
 
 
 /* Defined in tracemalloc.c */
@@ -88,7 +89,7 @@ struct _PyTraceMalloc_Config _Py_tracemalloc_config = _PyTraceMalloc_Config_INIT
 
 /* (elsa) ADDED THIS */
 static void *
-_PyMem_RawMallocAligned(size_t size) // TODO what is the ctx for??
+_PyMem_RawMallocAligned(size_t size) // TODO make it depend on a pool + change name
 {
     void *memptr;
     int ret;
@@ -104,6 +105,7 @@ _PyMem_RawMallocAligned(size_t size) // TODO what is the ctx for??
     }
 
     return memptr; // should leave it unchanged if error, so would be NULL
+    //return sm_malloc(size); 
 }
 /* ----------------- */
 
@@ -2253,10 +2255,13 @@ _PyMem_DebugRawFree(void *ctx, void *p)
     nbytes = read_size_t(q);
     nbytes += PYMEM_DEBUG_EXTRA_BYTES;
 
-    if (nbytes == 96 && ((uintptr_t)q & 0xfff) == 0) { // TODO this is terrible... please fix this
+    // (elsa) ADDED THIS (a bit of an ugly fix...)
+    /*PyTypeObject *tpe_gc = *(PyTypeObject **)(p + 3*SST);
+    if (tpe_gc == &PyModule_Type) {
         memset(q, PYMEM_DEADBYTE, nbytes);
         return _PyMem_RawFree(api->alloc.ctx, q);
-    }
+        //return sm_free(q);
+    }*/
 
     memset(q, PYMEM_DEADBYTE, nbytes);
     api->alloc.free(api->alloc.ctx, q);

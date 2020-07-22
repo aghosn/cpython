@@ -84,7 +84,13 @@ struct _is {
     PyObject *sysdict;
     PyObject *builtins;
     PyObject *importlib;
-    PyObject *dependencies;
+    PyObject *dependencies; // (elsa) ADDED THIS
+
+    int64_t genmd_id; // (elsa) ADDED THIS
+    struct {
+        int64_t stack[50]; // TODO which value ?? make it not magic
+        size_t sp;
+    } md_ids;
 
     /* Used in Modules/_threadmodule.c. */
     long num_threads;

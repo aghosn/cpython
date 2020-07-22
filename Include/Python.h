@@ -156,4 +156,6 @@
 #include "pyfpe.h"
 #include "tracemalloc.h"
 
+//#include "smalloc.h" // (elsa) ADDED THIS
+
 #endif /* !Py_PYTHON_H */

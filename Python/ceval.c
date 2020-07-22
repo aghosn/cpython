@@ -3475,6 +3475,11 @@ main_loop:
             PyFunctionObject *func = (PyFunctionObject *)
                 PyFunction_NewWithQualName(codeobj, f->f_globals, qualname);
 
+            // (elsa) TEST
+           // printf("   - ");
+           // PyObject_Print(qualname, stdout, 0);
+           // putchar('\n');
+
             Py_DECREF(codeobj);
             Py_DECREF(qualname);
             if (func == NULL) {
@@ -5027,25 +5032,26 @@ import_name(PyThreadState *tstate, PyFrameObject *f,
         return NULL;
     }
 
-    // TODO remove this
+    /* (elsa) ADDED THIS */
     PyObject *pkgname = _PyDict_GetItemIdWithError(f->f_globals, &PyId___name__);
     PyObject *dep;
 
-    //printf("in import_name (");
+    // TODO fix this ugliness
+    /*if (strncmp((char *)((void*)pkgname + 6*sizeof(size_t)), "__main__", 32) == 0) {
+        printf("here\n");
+    }*/
+
     if (pkgname != NULL && PyUnicode_Check(pkgname)) {
-        //PyObject_Print(pkgname, stdout, 0);
         dep = PyDict_GetItemWithError(tstate->interp->dependencies, pkgname);
         if (dep == NULL) {
             dep = PySet_New(NULL);
         }
-        PySet_Add(dep, name); // should check validity
+        PySet_Add(dep, name); // TODO should check validity
 
         PyObject_SetItem(tstate->interp->dependencies, pkgname, dep);
     }
-    //printf("): ");
-    //PyObject_Print(name, stdout, 0);
-    // putchar('\n');
-
+    /* ---------------- */
+   
     /* Fast path for not overloaded __import__. */
     if (import_func == tstate->interp->import_func) {
         int ilevel = _PyLong_AsInt(level);

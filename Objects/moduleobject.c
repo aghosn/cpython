@@ -18,6 +18,7 @@ typedef struct {
     void *md_state;
     PyObject *md_weaklist;
     PyObject *md_name;  /* for logging purposes after md_dict is cleared */
+    int64_t md_id; // (elsa) ADDED THIS
 } PyModuleObject;
 
 static PyMemberDef module_members[] = {
@@ -93,7 +94,8 @@ PyObject *
 PyModule_NewObject(PyObject *name)
 {
     PyModuleObject *m;
-    m = PyObject_GC_NewAligned(PyModuleObject, &PyModule_Type); // (elsa) CHANGED THIS
+    //m = PyObject_GC_NewAligned(PyModuleObject, &PyModule_Type); // (elsa) CHANGED THIS
+    m = PyObject_GC_New(PyModuleObject, &PyModule_Type);
     if (m == NULL)
         return NULL;
     m->md_def = NULL;
@@ -552,7 +554,7 @@ PyModule_GetFilename(PyObject *m)
 }
 
 PyModuleDef*
-PyModule_GetDef(PyObject* m)
+PyModule_GetDef(PyObject *m)
 {
     if (!PyModule_Check(m)) {
         PyErr_BadArgument();
@@ -562,7 +564,7 @@ PyModule_GetDef(PyObject* m)
 }
 
 void*
-PyModule_GetState(PyObject* m)
+PyModule_GetState(PyObject *m)
 {
     if (!PyModule_Check(m)) {
         PyErr_BadArgument();
@@ -570,6 +572,18 @@ PyModule_GetState(PyObject* m)
     }
     return ((PyModuleObject *)m)->md_state;
 }
+
+/* (elsa) ADDED THIS */
+int64_t
+PyModule_GetId(PyObject *m)
+{
+    if (!PyModule_Check(m)) {
+        PyErr_BadArgument();
+        return -1;
+    }
+    return ((PyModuleObject *)m)->md_id;
+}
+/* ----------------- */
 
 void
 _PyModule_Clear(PyObject *m)
@@ -673,6 +687,12 @@ module___init___impl(PyModuleObject *self, PyObject *name, PyObject *doc)
     }
     if (module_init_dict(self, dict, name, doc) < 0)
         return -1;
+
+    // (elsa) ADDED THIS
+    PyInterpreterState *interp = _PyInterpreterState_Get();
+    int64_t id = interp->md_ids.stack[--interp->md_ids.sp]; // TODO find the right place where it should be decremented
+    self->md_id = id;
+
     return 0;
 }
 
