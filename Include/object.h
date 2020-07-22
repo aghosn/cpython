@@ -175,7 +175,7 @@ typedef int (*visitproc)(PyObject *, void *);
 typedef int (*traverseproc)(PyObject *, visitproc, void *);
 
 
-typedef void (*freefunc)(void *);
+typedef void (*freefunc)(void *, int64_t); // (elsa) ADDED arg
 typedef void (*destructor)(PyObject *);
 typedef PyObject *(*getattrfunc)(PyObject *, char *);
 typedef PyObject *(*getattrofunc)(PyObject *, PyObject *);

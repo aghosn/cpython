@@ -2204,7 +2204,7 @@ PyObject_GC_UnTrack(void *op_raw)
 }
 
 static PyObject *
-_PyObject_GC_Alloc(int use_calloc, size_t basicsize, int aligned)
+_PyObject_GC_Alloc(int use_calloc, size_t basicsize, int64_t pool_id)
 {
     PyThreadState *tstate = _PyThreadState_GET();
     GCState *gcstate = &tstate->interp->gc;
@@ -2218,8 +2218,8 @@ _PyObject_GC_Alloc(int use_calloc, size_t basicsize, int aligned)
         g = (PyGC_Head *)PyObject_Calloc(1, size);
     }
     else {
-        if (aligned) {
-            g = (PyGC_Head *)PyObject_MallocAligned(size);
+        if (pool_id >= 0) {
+            g = (PyGC_Head *)PyObject_MallocFromPool(size, pool_id);
         }
         else {
             g = (PyGC_Head *)PyObject_Malloc(size);
@@ -2248,21 +2248,21 @@ _PyObject_GC_Alloc(int use_calloc, size_t basicsize, int aligned)
 }
 
 PyObject *
-_PyObject_GC_Malloc(size_t basicsize, int aligned)
+_PyObject_GC_Malloc(size_t basicsize, int64_t pool_id)
 {
-    return _PyObject_GC_Alloc(0, basicsize, aligned);
+    return _PyObject_GC_Alloc(0, basicsize, pool_id);
 }
 
 PyObject *
 _PyObject_GC_Calloc(size_t basicsize)
 {
-    return _PyObject_GC_Alloc(1, basicsize, 0); // (elsa) ADDED default arg
+    return _PyObject_GC_Alloc(1, basicsize, -1); // (elsa) ADDED default arg
 }
 
 PyObject *
-_PyObject_GC_New(PyTypeObject *tp, int aligned) // (elsa) ADDED arg
+_PyObject_GC_New(PyTypeObject *tp, int64_t pool_id) // (elsa) ADDED arg
 {
-    PyObject *op = _PyObject_GC_Malloc(_PyObject_SIZE(tp), aligned);
+    PyObject *op = _PyObject_GC_Malloc(_PyObject_SIZE(tp), pool_id);
     if (op != NULL)
         op = PyObject_INIT(op, tp);
     return op;
@@ -2279,7 +2279,7 @@ _PyObject_GC_NewVar(PyTypeObject *tp, Py_ssize_t nitems)
         return NULL;
     }
     size = _PyObject_VAR_SIZE(tp, nitems);
-    op = (PyVarObject *) _PyObject_GC_Malloc(size, 0); // (elsa) ADDED default arg 
+    op = (PyVarObject *) _PyObject_GC_Malloc(size, -1); // (elsa) ADDED default arg 
     if (op != NULL)
         op = PyObject_INIT_VAR(op, tp, nitems);
     return op;
@@ -2304,7 +2304,7 @@ _PyObject_GC_Resize(PyVarObject *op, Py_ssize_t nitems)
 }
 
 void
-PyObject_GC_Del(void *op)
+PyObject_GC_Del(void *op, int64_t pool_id) // (elsa) ADDED arg
 {
     PyGC_Head *g = AS_GC(op);
     if (_PyObject_GC_IS_TRACKED(op)) {
@@ -2315,5 +2315,10 @@ PyObject_GC_Del(void *op)
     if (gcstate->generations[0].count > 0) {
         gcstate->generations[0].count--;
     }
-    PyObject_FREE(g);
+    if (pool_id >= 0) {
+        PyObject_FreeFromPool(g, pool_id);
+    }
+    else {
+        PyObject_FREE(g);
+    }
 }

@@ -131,7 +131,7 @@ typedef struct {
     _PyGCHead_SET_FINALIZED(_Py_AS_GC(o))
 
 
-PyAPI_FUNC(PyObject *) _PyObject_GC_Malloc(size_t size, int aligned); // (elsa) ADDED arg
+PyAPI_FUNC(PyObject *) _PyObject_GC_Malloc(size_t size, int64_t pool_id); // (elsa) ADDED arg
 PyAPI_FUNC(PyObject *) _PyObject_GC_Calloc(size_t size);
 
 

@@ -690,7 +690,8 @@ module___init___impl(PyModuleObject *self, PyObject *name, PyObject *doc)
 
     // (elsa) ADDED THIS
     PyInterpreterState *interp = _PyInterpreterState_Get();
-    int64_t id = interp->md_ids.stack[--interp->md_ids.sp]; // TODO find the right place where it should be decremented
+    // int64_t id = interp->md_ids.stack[--interp->md_ids.sp]; // TODO find the right place where it should be decremented
+    int64_t id = interp->genmd_id;
     self->md_id = id;
 
     return 0;

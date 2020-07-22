@@ -6,8 +6,6 @@
 
 #include "smalloc_i.h"
 
-struct smalloc_pool_list pool_list; // (elsa) ADDED THIS
-
 void sm_free_pool(struct smalloc_pool *spool, void *p)
 {
 	struct smalloc_hdr *shdr;

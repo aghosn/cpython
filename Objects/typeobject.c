@@ -1018,17 +1018,19 @@ PyType_GenericAlloc(PyTypeObject *type, Py_ssize_t nitems)
             PyInterpreterState *interp = _PyInterpreterState_Get();
             int64_t id = interp->genmd_id++;
 
-            sm_add_pool(id, 2*sysconf(_SC_PAGESIZE)); // TODO have a default size ? make it dynamic ??
+            if (!sm_add_pool(id, 2*sysconf(_SC_PAGESIZE))) { // TODO have a default size ? make it dynamic ??
+                fprintf(stderr, "error while adding a new pool\n");
+            }
 
-            //obj = _PyObject_GC_Malloc(size, 1); // TODO change arg
+            obj = _PyObject_GC_Malloc(size, id); // TODO change arg
 
             // TODO: add ID on top of stack
-            interp->md_ids.stack[interp->md_ids.sp++] = id;
+            //interp->md_ids.stack[interp->md_ids.sp++] = id;
 
         }
-        //else {
-            obj = _PyObject_GC_Malloc(size, 0); // TODO change arg
-        //}
+        else {
+            obj = _PyObject_GC_Malloc(size, -1); // ADDED default arg
+        }
     }
     else
         obj = (PyObject *)PyObject_MALLOC(size);

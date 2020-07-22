@@ -114,9 +114,8 @@ int sm_add_pool(int64_t id, size_t size)
         pool_list.pools = new_pools;
         pool_list.capacity = new_capacity;
     }
-    struct smalloc_pool new_pool = pools[id];
     void *memptr = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-    if (!sm_set_pool(&new_pool, memptr, size, 0, NULL)) {
+    if (!sm_set_pool(&(pools[id]), memptr, size, 0, NULL)) {
         return 0;
     }
     return 1;

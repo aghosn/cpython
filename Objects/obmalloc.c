@@ -15,12 +15,12 @@ extern void _PyMem_DumpTraceback(int fd, const void *ptr);
 #define uint    unsigned int    /* assuming >= 16 bits */
 
 /* Forward declaration */
-static void* _PyMem_DebugRawMalloc(void *ctx, size_t size, int aligned); // (elsa) ADDED arg
+static void* _PyMem_DebugRawMalloc(void *ctx, size_t size);
 static void* _PyMem_DebugRawCalloc(void *ctx, size_t nelem, size_t elsize);
 static void* _PyMem_DebugRawRealloc(void *ctx, void *ptr, size_t size);
 static void _PyMem_DebugRawFree(void *ctx, void *ptr);
 
-static void* _PyMem_DebugMalloc(void *ctx, size_t size, int aligned); // (elsa) ADDED arg
+static void* _PyMem_DebugMalloc(void *ctx, size_t size);
 static void* _PyMem_DebugCalloc(void *ctx, size_t nelem, size_t elsize);
 static void* _PyMem_DebugRealloc(void *ctx, void *ptr, size_t size);
 static void _PyMem_DebugFree(void *ctx, void *p);
@@ -75,7 +75,7 @@ static void _PyMem_SetupDebugHooksDomain(PyMemAllocatorDomain domain);
 #endif
 
 /* Forward declaration */
-static void* _PyObject_Malloc(void *ctx, size_t size, int aligned); // (elsa) ADDED arg
+static void* _PyObject_Malloc(void *ctx, size_t size);
 static void* _PyObject_Calloc(void *ctx, size_t nelem, size_t elsize);
 static void _PyObject_Free(void *ctx, void *p);
 static void* _PyObject_Realloc(void *ctx, void *ptr, size_t size);
@@ -87,34 +87,9 @@ static void* _PyObject_Realloc(void *ctx, void *ptr, size_t size);
    library, whereas _Py_NewReference() requires it. */
 struct _PyTraceMalloc_Config _Py_tracemalloc_config = _PyTraceMalloc_Config_INIT;
 
-/* (elsa) ADDED THIS */
 static void *
-_PyMem_RawMallocAligned(size_t size) // TODO make it depend on a pool + change name
+_PyMem_RawMalloc(void *ctx, size_t size)
 {
-    void *memptr;
-    int ret;
-
-    if (size == 0)
-        size = 1; // same as malloc, a bit undefined
-
-    memptr = NULL;
-    ret = posix_memalign(&memptr, sysconf(_SC_PAGESIZE), size);
-    if (ret == EINVAL) {
-        // TODO (elsa) better error? don't care?
-        fprintf(stderr, "memalign: invalid alignment\n");
-    }
-
-    return memptr; // should leave it unchanged if error, so would be NULL
-    //return sm_malloc(size); 
-}
-/* ----------------- */
-
-static void *
-_PyMem_RawMalloc(void *ctx, size_t size, int aligned) // (elsa) ADDED arg
-{
-    if (aligned) // (elsa) ADDED THIS
-        return _PyMem_RawMallocAligned(size);
-
     /* PyMem_RawMalloc(0) means malloc(1). Some systems would return NULL
        for malloc(0), which would be treated as an error. Some platforms would
        return a pointer with no memory behind it, which would break pymalloc.
@@ -594,7 +569,7 @@ PyMem_RawMalloc(size_t size)
      */
     if (size > (size_t)PY_SSIZE_T_MAX)
         return NULL;
-    return _PyMem_Raw.malloc(_PyMem_Raw.ctx, size, 0); // (elsa) ADDED default arg
+    return _PyMem_Raw.malloc(_PyMem_Raw.ctx, size);
 }
 
 void *
@@ -627,7 +602,7 @@ PyMem_Malloc(size_t size)
     /* see PyMem_RawMalloc() */
     if (size > (size_t)PY_SSIZE_T_MAX)
         return NULL;
-    return _PyMem.malloc(_PyMem.ctx, size, 0); // (elsa) ADDED default arg
+    return _PyMem.malloc(_PyMem.ctx, size);
 }
 
 void *
@@ -707,16 +682,16 @@ PyObject_Malloc(size_t size)
     /* see PyMem_RawMalloc() */
     if (size > (size_t)PY_SSIZE_T_MAX)
         return NULL;
-    return _PyObject.malloc(_PyObject.ctx, size, 0); // (elsa) ADDED default arg
+    return _PyObject.malloc(_PyObject.ctx, size);
 }
 
-/* (elsa) ADDED THIS (so that we don't need to change the API..) */
+/* (elsa) ADDED THIS */
 void *
-PyObject_MallocAligned(size_t size)
+PyObject_MallocFromPool(size_t size, int64_t pool_id)
 {
     if (size > (size_t)PY_SSIZE_T_MAX)
         return NULL;
-    return _PyObject.malloc(_PyObject.ctx, size, 1);
+    return sm_malloc_from_pool(pool_id, size);
 }
 /* ----------------- */
 
@@ -743,6 +718,14 @@ PyObject_Free(void *ptr)
 {
     _PyObject.free(_PyObject.ctx, ptr);
 }
+
+/* (elsa) ADDED THIS */
+void
+PyObject_FreeFromPool(void *ptr, int64_t pool_id)
+{
+    return sm_free_from_pool(pool_id, ptr);
+}
+/* ----------------- */
 
 
 /* If we're using GCC, use __builtin_expect() to reduce overhead of
@@ -1670,24 +1653,17 @@ pymalloc_alloc(void *ctx, size_t nbytes)
 
 
 static void *
-_PyObject_Malloc(void *ctx, size_t nbytes, int aligned) // (elsa) ADDED arg
+_PyObject_Malloc(void *ctx, size_t nbytes)
 {
     void* ptr;
  
     ptr = pymalloc_alloc(ctx, nbytes);
 
-    if (!aligned) {
-        if (LIKELY(ptr != NULL)) {
-            return ptr;
-        }
+    if (LIKELY(ptr != NULL)) {
+        return ptr;
+    }
 
-    //if (!aligned) {
-        ptr = PyMem_RawMalloc(nbytes);
-    }
-    else {
-        ptr = _PyMem_RawMallocAligned(nbytes);
-        //printf("memory allocated for a module at address %p\n", ptr);
-    }
+    ptr = PyMem_RawMalloc(nbytes);
 
     if (ptr != NULL) {
         raw_allocated_blocks++;
@@ -2031,7 +2007,7 @@ pymalloc_realloc(void *ctx, void **newptr_p, void *p, size_t nbytes)
         size = nbytes;
     }
 
-    bp = _PyObject_Malloc(ctx, nbytes, 0); // (elsa) ADDED default arg
+    bp = _PyObject_Malloc(ctx, nbytes);
     if (bp != NULL) {
         memcpy(bp, p, size);
         _PyObject_Free(ctx, p);
@@ -2047,7 +2023,7 @@ _PyObject_Realloc(void *ctx, void *ptr, size_t nbytes)
     void *ptr2;
 
     if (ptr == NULL) {
-        return _PyObject_Malloc(ctx, nbytes, 0); // (elsa) ADDED default arg
+        return _PyObject_Malloc(ctx, nbytes);
     }
 
     if (pymalloc_realloc(ctx, &ptr2, ptr, nbytes)) {
@@ -2159,7 +2135,7 @@ for 3 * S extra bytes, and omits the last serialno field.
 */
 
 static void *
-_PyMem_DebugRawAlloc(int use_calloc, void *ctx, size_t nbytes, int aligned) // (elsa) ADDED arg
+_PyMem_DebugRawAlloc(int use_calloc, void *ctx, size_t nbytes)
 {
     debug_alloc_api_t *api = (debug_alloc_api_t *)ctx;
     uint8_t *p;           /* base address of malloc'ed pad block */
@@ -2188,7 +2164,7 @@ _PyMem_DebugRawAlloc(int use_calloc, void *ctx, size_t nbytes, int aligned) // (
         p = (uint8_t *)api->alloc.calloc(api->alloc.ctx, 1, total);
     }
     else {
-        p = (uint8_t *)api->alloc.malloc(api->alloc.ctx, total, aligned);
+        p = (uint8_t *)api->alloc.malloc(api->alloc.ctx, total);
     }
     if (p == NULL) {
         return NULL;
@@ -2219,9 +2195,9 @@ _PyMem_DebugRawAlloc(int use_calloc, void *ctx, size_t nbytes, int aligned) // (
 }
 
 static void *
-_PyMem_DebugRawMalloc(void *ctx, size_t nbytes, int aligned) // (elsa) ADDED arg
+_PyMem_DebugRawMalloc(void *ctx, size_t nbytes)
 {
-    return _PyMem_DebugRawAlloc(0, ctx, nbytes, aligned);
+    return _PyMem_DebugRawAlloc(0, ctx, nbytes);
 }
 
 static void *
@@ -2230,7 +2206,7 @@ _PyMem_DebugRawCalloc(void *ctx, size_t nelem, size_t elsize)
     size_t nbytes;
     assert(elsize == 0 || nelem <= (size_t)PY_SSIZE_T_MAX / elsize);
     nbytes = nelem * elsize;
-    return _PyMem_DebugRawAlloc(1, ctx, nbytes, 0); // (elsa) ADDED default arg
+    return _PyMem_DebugRawAlloc(1, ctx, nbytes);
 }
 
 
@@ -2255,14 +2231,6 @@ _PyMem_DebugRawFree(void *ctx, void *p)
     nbytes = read_size_t(q);
     nbytes += PYMEM_DEBUG_EXTRA_BYTES;
 
-    // (elsa) ADDED THIS (a bit of an ugly fix...)
-    /*PyTypeObject *tpe_gc = *(PyTypeObject **)(p + 3*SST);
-    if (tpe_gc == &PyModule_Type) {
-        memset(q, PYMEM_DEADBYTE, nbytes);
-        return _PyMem_RawFree(api->alloc.ctx, q);
-        //return sm_free(q);
-    }*/
-
     memset(q, PYMEM_DEADBYTE, nbytes);
     api->alloc.free(api->alloc.ctx, q);
 }
@@ -2272,7 +2240,7 @@ static void *
 _PyMem_DebugRawRealloc(void *ctx, void *p, size_t nbytes)
 {
     if (p == NULL) {
-        return _PyMem_DebugRawAlloc(0, ctx, nbytes, 0); // (elsa) ADDED default arg
+        return _PyMem_DebugRawAlloc(0, ctx, nbytes);
     }
 
     debug_alloc_api_t *api = (debug_alloc_api_t *)ctx;
@@ -2378,10 +2346,10 @@ _PyMem_DebugCheckGIL(void)
 }
 
 static void *
-_PyMem_DebugMalloc(void *ctx, size_t nbytes, int aligned) // (elsa) ADDED arg
+_PyMem_DebugMalloc(void *ctx, size_t nbytes)
 {
     _PyMem_DebugCheckGIL();
-    return _PyMem_DebugRawMalloc(ctx, nbytes, aligned);
+    return _PyMem_DebugRawMalloc(ctx, nbytes);
 }
 
 static void *
