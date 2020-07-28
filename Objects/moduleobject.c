@@ -5,6 +5,8 @@
 #include "pycore_pystate.h"
 #include "structmember.h"
 
+#include "smalloc.h" // (elsa) ADDED THIS
+
 static Py_ssize_t max_module_number;
 
 _Py_IDENTIFIER(__doc__);
@@ -94,8 +96,17 @@ PyObject *
 PyModule_NewObject(PyObject *name)
 {
     PyModuleObject *m;
-    //m = PyObject_GC_NewAligned(PyModuleObject, &PyModule_Type); // (elsa) CHANGED THIS
-    m = PyObject_GC_New(PyModuleObject, &PyModule_Type);
+
+    // (elsa) ADDED THIS
+    PyInterpreterState *interp = _PyInterpreterState_Get(); // TODO consider making it a function to avoid duplication of code
+    int64_t id = interp->genmd_id++;
+    if (!sm_add_pool(id, 4*sysconf(_SC_PAGESIZE))) { // TODO have a default size ? make it dynamic ??
+        fprintf(stderr, "error while adding a new pool\n");
+    }
+
+    m = PyObject_GC_NewFromPool(PyModuleObject, &PyModule_Type, id);
+    //m = PyObject_GC_New(PyModuleObject, &PyModule_Type);
+
     if (m == NULL)
         return NULL;
     m->md_def = NULL;
@@ -103,6 +114,7 @@ PyModule_NewObject(PyObject *name)
     m->md_weaklist = NULL;
     m->md_name = NULL;
     m->md_dict = PyDict_New();
+    m->md_id = id; // ADDED THIS
     if (module_init_dict(m, m->md_dict, name, NULL) != 0)
         goto fail;
     PyObject_GC_Track(m);
@@ -221,6 +233,9 @@ _PyModule_CreateInitialized(struct PyModuleDef* module, int module_api_version)
     if ((m = (PyModuleObject*)PyModule_New(name)) == NULL)
         return NULL;
 
+    // (elsa) TEST
+    printf("%s(%jd)\n", name, m->md_id);
+
     if (module->m_size > 0) {
         m->md_state = PyMem_MALLOC(module->m_size);
         if (!m->md_state) {
@@ -325,6 +340,10 @@ PyModule_FromDefAndSpec2(struct PyModuleDef* def, PyObject *spec, int module_api
         if (m == NULL) {
             goto error;
         }
+
+        // (elsa) TEST
+        printf("%s(%ld)\n", name, PyModule_GetId(m));
+
     }
 
     if (PyModule_Check(m)) {
@@ -690,9 +709,16 @@ module___init___impl(PyModuleObject *self, PyObject *name, PyObject *doc)
 
     // (elsa) ADDED THIS
     PyInterpreterState *interp = _PyInterpreterState_Get();
-    // int64_t id = interp->md_ids.stack[--interp->md_ids.sp]; // TODO find the right place where it should be decremented
-    int64_t id = interp->genmd_id;
+    if (interp->md_ids.sp >= 10) {
+        fprintf(stderr, "MODULE IDS STACK OVERFLOW!!\n");
+        return -1;
+    }
+    int64_t id = interp->md_ids.stack[interp->md_ids.sp++]; // TODO find the right place where it should be decremented
     self->md_id = id;
+
+    // TEST
+    PyObject_Print(name, stdout, 0);
+    printf("(%jd)\n", id);
 
     return 0;
 }
@@ -714,7 +740,8 @@ module_dealloc(PyModuleObject *m)
     Py_XDECREF(m->md_name);
     if (m->md_state != NULL)
         PyMem_FREE(m->md_state);
-    Py_TYPE(m)->tp_free((PyObject *)m);
+    //Py_TYPE(m)->tp_free((PyObject *)m);
+    PyObject_GC_DelFromPool((PyObject *)m, m->md_id);
 }
 
 static PyObject *

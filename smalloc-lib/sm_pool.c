@@ -102,20 +102,18 @@ int sm_pools_init(size_t capacity)
 
 int sm_add_pool(int64_t id, size_t size)
 {
-    struct smalloc_pool *pools = pool_list.pools;
     if (id >= pool_list.capacity) {
         size_t new_capacity = 2*pool_list.capacity; // is that too much ? rather add a constant ?
-        struct smalloc_pool *new_pools = reallocarray(pools, new_capacity, sizeof(struct smalloc_pool));
+        struct smalloc_pool *new_pools = reallocarray(pool_list.pools, new_capacity, sizeof(struct smalloc_pool));
         if (new_pools == NULL) {
             // TODO: error no more mem
-            free(pools);
             return 0;
         }
         pool_list.pools = new_pools;
         pool_list.capacity = new_capacity;
     }
     void *memptr = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-    if (!sm_set_pool(&(pools[id]), memptr, size, 0, NULL)) {
+    if (!sm_set_pool(&(pool_list.pools[id]), memptr, size, 0, NULL)) {
         return 0;
     }
     return 1;

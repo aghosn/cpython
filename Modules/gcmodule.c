@@ -2304,7 +2304,7 @@ _PyObject_GC_Resize(PyVarObject *op, Py_ssize_t nitems)
 }
 
 void
-PyObject_GC_Del(void *op, int64_t pool_id) // (elsa) ADDED arg
+PyObject_GC_Del(void *op)
 {
     PyGC_Head *g = AS_GC(op);
     if (_PyObject_GC_IS_TRACKED(op)) {
@@ -2315,10 +2315,24 @@ PyObject_GC_Del(void *op, int64_t pool_id) // (elsa) ADDED arg
     if (gcstate->generations[0].count > 0) {
         gcstate->generations[0].count--;
     }
-    if (pool_id >= 0) {
-        PyObject_FreeFromPool(g, pool_id);
+
+    PyObject_FREE(g);
+}
+
+/* (elsa) ADDED THIS */
+void
+PyObject_GC_DelFromPool(void *op, int64_t pool_id)
+{
+    // TODO make it better, for now it is a copy-pasta, so not a good thing
+    PyGC_Head *g = AS_GC(op);
+    if (_PyObject_GC_IS_TRACKED(op)) {
+        gc_list_remove(g);
     }
-    else {
-        PyObject_FREE(g);
+    PyThreadState *tstate = _PyThreadState_GET();
+    GCState *gcstate = &tstate->interp->gc;
+    if (gcstate->generations[0].count > 0) {
+        gcstate->generations[0].count--;
     }
+
+    PyObject_FreeFromPool(g, pool_id);
 }

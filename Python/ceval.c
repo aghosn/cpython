@@ -3475,11 +3475,6 @@ main_loop:
             PyFunctionObject *func = (PyFunctionObject *)
                 PyFunction_NewWithQualName(codeobj, f->f_globals, qualname);
 
-            // (elsa) TEST
-            //printf("   - ");
-            //PyObject_Print(qualname, stdout, 0);
-            //printf("(%jd)\n", tstate->interp->genmd_id);
-
             Py_DECREF(codeobj);
             Py_DECREF(qualname);
             if (func == NULL) {

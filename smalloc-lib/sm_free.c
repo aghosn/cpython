@@ -42,7 +42,7 @@ void sm_free(void *p)
 /* (elsa) ADDED THIS */
 void sm_free_from_pool(int64_t id, void *p)
 {
-    if (id >= pool_list.capacity) {
+    if (id >= pool_list.capacity || id < 0) {
         // TODO error
         return;
     }

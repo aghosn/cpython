@@ -873,8 +873,18 @@ import_add_module(PyThreadState *tstate, PyObject *name)
         return m;
     }
     m = PyModule_NewObject(name);
+
     if (m == NULL)
         return NULL;
+
+    // (elsa) TEST: quite horrible and don't even know if a good idea..
+    int64_t id = PyModule_GetId(m);
+    const char *name_str = PyUnicode_AsUTF8(name);
+    printf("%s(%ld)\n", name_str, id);
+    if (!strncmp(name_str, "_frozen_importlib", 20)) {
+        tstate->interp->md_ids.stack[tstate->interp->md_ids.sp++] = id;
+    }
+
     if (PyObject_SetItem(modules, name, m) != 0) {
         Py_DECREF(m);
         return NULL;

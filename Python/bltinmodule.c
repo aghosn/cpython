@@ -989,10 +989,6 @@ builtin_exec_impl(PyObject *module, PyObject *source, PyObject *globals,
     PyInterpreterState *interp = _PyInterpreterState_Get();
     PyObject *md_name = _PyDict_GetItemIdWithError(globals, &PyId___name__);
     PyObject *maybe_module = PyDict_GetItemWithError(interp->modules, md_name);
-    if (maybe_module != NULL) { // found in sys.modules, beware: __main__ is an exception (?)
-        PyObject_Print(md_name, stdout, 0);
-        printf("(%jd)\n", PyModule_GetId(maybe_module));
-    }
 
     if (globals == Py_None) {
         globals = PyEval_GetGlobals();
@@ -1041,7 +1037,19 @@ builtin_exec_impl(PyObject *module, PyObject *source, PyObject *globals,
                 "contain free variables");
             return NULL;
         }
+        // (elsa) TEST
+        if (maybe_module != NULL) { // found in sys.module
+            int64_t id = PyModule_GetId(maybe_module);
+            //interp->md_ids.stack[interp->md_ids.sp++] = id;
+            printf("-> start %ld\n", id); 
+        }
+
         v = PyEval_EvalCode(source, globals, locals);
+
+        if (maybe_module != NULL) {
+            int64_t id = interp->md_ids.stack[--interp->md_ids.sp];
+            printf("-> end %ld\n", id);
+        }
     }
     else {
         PyObject *source_copy;

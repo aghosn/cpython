@@ -1012,21 +1012,22 @@ PyType_GenericAlloc(PyTypeObject *type, Py_ssize_t nitems)
     PyObject *obj;
     const size_t size = _PyObject_VAR_SIZE(type, nitems+1);
     /* note that we need to add one, for the sentinel */
+    int64_t id;
 
-    if (PyType_IS_GC(type)) {
+    if (PyType_IS_GC(type)) { 
+        // (elsa) ADDED THIS
         if (type == &PyModule_Type) {
             PyInterpreterState *interp = _PyInterpreterState_Get();
-            int64_t id = interp->genmd_id++;
+            id = interp->genmd_id++; // TODO make it so that the library gives the ids
 
-            if (!sm_add_pool(id, 2*sysconf(_SC_PAGESIZE))) { // TODO have a default size ? make it dynamic ??
+            if (!sm_add_pool(id, 8*sysconf(_SC_PAGESIZE))) { // TODO have a default size ? make it dynamic ??
                 fprintf(stderr, "error while adding a new pool\n");
             }
 
             obj = _PyObject_GC_Malloc(size, id); // TODO change arg
 
             // TODO: add ID on top of stack
-            //interp->md_ids.stack[interp->md_ids.sp++] = id;
-
+            interp->md_ids.stack[interp->md_ids.sp] = id;
         }
         else {
             obj = _PyObject_GC_Malloc(size, -1); // ADDED default arg

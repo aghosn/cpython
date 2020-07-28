@@ -22,7 +22,15 @@ PyFunction_NewWithQualName(PyObject *code, PyObject *globals, PyObject *qualname
             return NULL;
     }
 
-    op = PyObject_GC_New(PyFunctionObject, &PyFunction_Type);
+    //op = PyObject_GC_New(PyFunctionObject, &PyFunction_Type);
+    // (elsa) ADDED THIS
+    PyInterpreterState *interp = _PyInterpreterState_Get();
+    int64_t id = interp->md_ids.stack[interp->md_ids.sp-1];
+    op = PyObject_GC_NewFromPool(PyFunctionObject, &PyFunction_Type, id);
+    printf("   - ");
+    PyObject_Print(qualname, stdout, 0);
+    printf("(%jd)\n", id);
+
     if (op == NULL)
         return NULL;
 
@@ -37,6 +45,7 @@ PyFunction_NewWithQualName(PyObject *code, PyObject *globals, PyObject *qualname
     op->func_kwdefaults = NULL; /* No keyword only defaults */
     op->func_closure = NULL;
     op->vectorcall = _PyFunction_Vectorcall;
+    op->pool_id = id; // (elsa) ADDED THIS
 
     consts = ((PyCodeObject *)code)->co_consts;
     if (PyTuple_Size(consts) >= 1) {
@@ -593,7 +602,9 @@ func_dealloc(PyFunctionObject *op)
         PyObject_ClearWeakRefs((PyObject *) op);
     }
     (void)func_clear(op);
-    PyObject_GC_Del(op);
+    //PyObject_GC_Del(op);
+    PyObject_GC_DelFromPool(op, op->pool_id);
+    
 }
 
 static PyObject*

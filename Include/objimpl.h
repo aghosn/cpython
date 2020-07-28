@@ -234,6 +234,7 @@ PyAPI_FUNC(void) PyObject_GC_Track(void *);
 PyAPI_FUNC(void) PyObject_GC_UnTrack(void *);
 
 PyAPI_FUNC(void) PyObject_GC_Del(void *);
+void PyObject_GC_DelFromPool(void *, int64_t); // (elsa) ADDED THIS
 
 #define PyObject_GC_New(type, typeobj) \
                 ( (type *) _PyObject_GC_New(typeobj, -1) )
@@ -241,7 +242,6 @@ PyAPI_FUNC(void) PyObject_GC_Del(void *);
                 ( (type *) _PyObject_GC_New(typeobj, pool_id) ) // (elsa) ADDED THIS
 #define PyObject_GC_NewVar(type, typeobj, n) \
                 ( (type *) _PyObject_GC_NewVar((typeobj), (n)) )
-
 
 /* Utility macro to help write tp_traverse functions.
  * To use this macro, the tp_traverse function must name its arguments
