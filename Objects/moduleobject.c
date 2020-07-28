@@ -100,8 +100,8 @@ PyModule_NewObject(PyObject *name)
     // (elsa) ADDED THIS
     PyInterpreterState *interp = _PyInterpreterState_Get(); // TODO consider making it a function to avoid duplication of code
     int64_t id = interp->genmd_id++;
-    if (!sm_add_pool(id, 4*sysconf(_SC_PAGESIZE))) { // TODO have a default size ? make it dynamic ??
-        fprintf(stderr, "error while adding a new pool\n");
+    if (!sm_add_mpool(id)) {
+        fprintf(stderr, "module-object: error while adding a new pool\n");
     }
 
     m = PyObject_GC_NewFromPool(PyModuleObject, &PyModule_Type, id);

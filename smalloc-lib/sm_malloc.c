@@ -6,12 +6,15 @@
 
 #include "smalloc_i.h"
 
-void *sm_malloc_pool(struct smalloc_pool *spool, size_t n)
+void *sm_malloc_mpool(struct smalloc_mpools *m_spool, size_t n)
 {
+    struct smalloc_pool *spool;
 	struct smalloc_hdr *basehdr, *shdr, *dhdr;
 	char *s;
 	int found;
 	size_t x;
+
+    spool = &(m_spool->pools[m_spool->next-1]);
 
 again:	if (!smalloc_verify_pool(spool)) {
 		errno = EINVAL;
@@ -79,6 +82,7 @@ outfound:		if (found) {
 					memcpy(s+x, &tag, sizeof(uintptr_t));
 				}
 				memset(s+x, 0xff, shdr->rsz - shdr->usz);
+                spool->num_elems++; // (elsa) ADDED THIS
 				return HEADER_TO_USER(shdr);
 			}
 
@@ -90,10 +94,10 @@ allocblock:		shdr = dhdr;
 		shdr++;
 	}
 
-oom:	if (spool->oomfn) {
-		x = spool->oomfn(spool, n);
-		if (x > spool->pool_size) {
-			spool->pool_size = x;
+oom:	if (m_spool->oomfn) {
+		spool = m_spool->oomfn(m_spool, n);
+		if (spool != NULL) {
+			m_spool->next++;
 			if (sm_align_pool(spool)) goto again;
 		}
 	}
@@ -102,10 +106,10 @@ oom:	if (spool->oomfn) {
 	return NULL;
 }
 
-void *sm_malloc(size_t n)
+/*void *sm_malloc(size_t n)
 {
 	return sm_malloc_pool(&smalloc_curr_pool, n);
-}
+}*/
 
 /* (elsa) ADDED THIS */
 void *sm_malloc_from_pool(int64_t id, size_t n)
@@ -114,7 +118,6 @@ void *sm_malloc_from_pool(int64_t id, size_t n)
         // TODO error
         return NULL;
     }
-    struct smalloc_pool pool = pool_list.pools[id];
-    return sm_malloc_pool(&pool, n);
+    return sm_malloc_mpool(&(pool_list.mpools[id]), n);
 }
 

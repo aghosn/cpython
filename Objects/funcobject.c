@@ -27,9 +27,9 @@ PyFunction_NewWithQualName(PyObject *code, PyObject *globals, PyObject *qualname
     PyInterpreterState *interp = _PyInterpreterState_Get();
     int64_t id = interp->md_ids.stack[interp->md_ids.sp-1];
     op = PyObject_GC_NewFromPool(PyFunctionObject, &PyFunction_Type, id);
-    printf("   - ");
-    PyObject_Print(qualname, stdout, 0);
-    printf("(%jd)\n", id);
+    //printf("   - ");
+    //PyObject_Print(qualname, stdout, 0);
+    //printf("(%jd)\n", id);
 
     if (op == NULL)
         return NULL;

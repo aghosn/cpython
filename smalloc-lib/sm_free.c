@@ -5,6 +5,7 @@
  */
 
 #include "smalloc_i.h"
+#include <stdio.h>
 
 void sm_free_pool(struct smalloc_pool *spool, void *p)
 {
@@ -43,10 +44,23 @@ void sm_free(void *p)
 void sm_free_from_pool(int64_t id, void *p)
 {
     if (id >= pool_list.capacity || id < 0) {
-        // TODO error
+        fprintf(stderr, "smalloc-free: Received invalid id\n");
         return;
     }
-    struct smalloc_pool pool = pool_list.pools[id];
-    return sm_free_pool(&pool, p);
+    struct smalloc_mpools m_pool = pool_list.mpools[id];
+    // Linear search
+    for (size_t i = 0; i < m_pool.next; ++i) {
+        struct smalloc_pool *spool = &(m_pool.pools[i]);
+        if (p >= spool->pool && p < spool->pool + m_pool.pools_size) {
+            sm_free_pool(spool, p);
+            if (--spool->num_elems <= 0) {
+                // TODO free it
+                fprintf(stderr, "smalloc-free: %ld\n", id); // TODO would need to also check that for all other pages..
+            }
+
+            return;
+        }
+    }
+    fprintf(stderr, "smalloc-free: No corresponding pool was found!!\n");
 }
 

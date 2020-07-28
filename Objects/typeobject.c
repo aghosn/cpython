@@ -1020,8 +1020,8 @@ PyType_GenericAlloc(PyTypeObject *type, Py_ssize_t nitems)
             PyInterpreterState *interp = _PyInterpreterState_Get();
             id = interp->genmd_id++; // TODO make it so that the library gives the ids
 
-            if (!sm_add_pool(id, 8*sysconf(_SC_PAGESIZE))) { // TODO have a default size ? make it dynamic ??
-                fprintf(stderr, "error while adding a new pool\n");
+            if (!sm_add_mpool(id)) {
+                fprintf(stderr, "type-object: error while adding a new pool\n");
             }
 
             obj = _PyObject_GC_Malloc(size, id); // TODO change arg
