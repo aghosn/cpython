@@ -37,6 +37,13 @@ struct smalloc_mpools {
 
 struct smalloc_pool_list {
     size_t capacity;
+    size_t next;
+    struct {
+        int64_t stack[20]; // for now only a test: will need to make it some kind of list if it works...
+        size_t sp;
+        size_t gen;
+    } free_ids;
+
     struct smalloc_mpools *mpools;
 };
 

@@ -53,9 +53,13 @@ void sm_free_from_pool(int64_t id, void *p)
         struct smalloc_pool *spool = &(m_pool.pools[i]);
         if (p >= spool->pool && p < spool->pool + m_pool.pools_size) {
             sm_free_pool(spool, p);
-            if (--spool->num_elems <= 0) {
-                // TODO free it
-                fprintf(stderr, "smalloc-free: %ld\n", id); // TODO would need to also check that for all other pages..
+            if (--spool->num_elems <= 0 && m_pool.next == 1) { // Only one page to simplify
+                if (pool_list.free_ids.sp >= 9) { // remove magic number
+                    //fprintf(stderr, "too many freed modules; can't keep up\n");
+                    // This must be the end of the program, everything will be freed anyway
+                    return;
+                }
+                pool_list.free_ids.stack[pool_list.free_ids.sp++] = id;
             }
 
             return;

@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <sys/mman.h> 
 #include <stdio.h>
+#include <assert.h>
 
 struct smalloc_pool smalloc_curr_pool;
 struct smalloc_pool_list pool_list; // (elsa) ADDED THIS
@@ -107,22 +108,35 @@ int sm_pools_init(size_t outer_capacity, size_t inner_capacity, size_t pools_siz
 
     pool_list.mpools = mpools;
     pool_list.capacity = outer_capacity;
+
     return 1;
 }
 
-int sm_add_mpool(int64_t id)
+//int sm_add_mpool(int64_t id)
+int64_t sm_add_mpool(void)
 {
+    uint64_t id;
+    if (pool_list.free_ids.sp > 0) {
+        id = pool_list.free_ids.stack[--pool_list.free_ids.sp];
+
+        // TODO verify it is valid?
+        assert(pool_list.mpools[id].next == 1);
+        fprintf(stderr, "Reusing region %ld\n", id);
+        return id;
+    }
+    id = pool_list.free_ids.gen++;
+    
     if (id >= pool_list.capacity) {
         size_t new_capacity = 2*pool_list.capacity; // is that too much ? rather add a constant ?
         struct smalloc_mpools *new_mpools = reallocarray(pool_list.mpools, new_capacity, sizeof(struct smalloc_mpools));
         if (new_mpools == NULL) {
             fprintf(stderr, "add-mpool: no more memory (realloc failed)\n");
-            return 0;
+            return -1;
         }
         size_t m_pool_capacity = new_mpools[0].capacity;
         size_t m_pool_pools_size = new_mpools[0].pools_size; // ??! not ideal
         if (!mpools_initialize(new_mpools, pool_list.capacity, new_capacity, m_pool_capacity, m_pool_pools_size, &sm_add_pool)) {
-            return 0;
+            return -1;
         }
 
         pool_list.mpools = new_mpools;
@@ -130,10 +144,10 @@ int sm_add_mpool(int64_t id)
     }
     struct smalloc_mpools *m_spool = &(pool_list.mpools[id]);
     if (sm_add_pool(m_spool, 0) == NULL) {
-        return 0;
+        return -1;
     }
     m_spool->next++;
-    return 1;
+    return id;
 }
 
 int sm_release_pools(void)

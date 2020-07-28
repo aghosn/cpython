@@ -98,9 +98,8 @@ PyModule_NewObject(PyObject *name)
     PyModuleObject *m;
 
     // (elsa) ADDED THIS
-    PyInterpreterState *interp = _PyInterpreterState_Get(); // TODO consider making it a function to avoid duplication of code
-    int64_t id = interp->genmd_id++;
-    if (!sm_add_mpool(id)) {
+    int64_t id;
+    if ((id = sm_add_mpool()) < 0) {
         fprintf(stderr, "module-object: error while adding a new pool\n");
     }
 
