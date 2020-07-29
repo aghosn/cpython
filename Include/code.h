@@ -68,6 +68,8 @@ typedef struct {
     _PyOpcache *co_opcache;
     int co_opcache_flag;  // used to determine when create a cache.
     unsigned char co_opcache_size;  // length of co_opcache.
+
+    int64_t pool_id; // (elsa) ADDED THIS
 } PyCodeObject;
 
 /* Masks for co_flags above */

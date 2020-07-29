@@ -220,12 +220,16 @@ PyCode_NewWithPosOnlyArgs(int argcount, int posonlyargcount, int kwonlyargcount,
             cell2arg = NULL;
         }
     }
-    co = PyObject_NEW(PyCodeObject, &PyCode_Type);
+    // (elsa) ADDED THIS (test)
+    PyInterpreterState *interp = _PyInterpreterState_Get();
+    int64_t pool_id = interp->md_ids.stack[interp->md_ids.sp-1];
+    co = PyObject_NEWFromPool(PyCodeObject, &PyCode_Type, pool_id);
     if (co == NULL) {
         if (cell2arg)
             PyMem_FREE(cell2arg);
         return NULL;
     }
+    co->pool_id = pool_id;
     co->co_argcount = argcount;
     co->co_posonlyargcount = posonlyargcount;
     co->co_kwonlyargcount = kwonlyargcount;
@@ -590,7 +594,8 @@ code_dealloc(PyCodeObject *co)
         PyObject_GC_Del(co->co_zombieframe);
     if (co->co_weakreflist != NULL)
         PyObject_ClearWeakRefs((PyObject*)co);
-    PyObject_DEL(co);
+    //PyObject_DEL(co);
+    PyObject_FreeFromPool(co, co->pool_id); // (elsa) CHANGED THIS
 }
 
 static PyObject *

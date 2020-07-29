@@ -1038,11 +1038,11 @@ builtin_exec_impl(PyObject *module, PyObject *source, PyObject *globals,
             return NULL;
         }
         // (elsa) TEST
-        if (maybe_module != NULL) { // found in sys.module
+        /*if (maybe_module != NULL) { // found in sys.module
             int64_t id = PyModule_GetId(maybe_module);
             //interp->md_ids.stack[interp->md_ids.sp++] = id;
             printf("-> start %ld\n", id); 
-        }
+        }*/
 
         v = PyEval_EvalCode(source, globals, locals);
 

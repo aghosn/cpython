@@ -112,7 +112,7 @@ PyModule_NewObject(PyObject *name)
     m->md_state = NULL;
     m->md_weaklist = NULL;
     m->md_name = NULL;
-    m->md_dict = PyDict_New();
+    m->md_dict = PyDict_NewFromPool(id);
     m->md_id = id; // ADDED THIS
     if (module_init_dict(m, m->md_dict, name, NULL) != 0)
         goto fail;
@@ -696,16 +696,6 @@ static int
 module___init___impl(PyModuleObject *self, PyObject *name, PyObject *doc)
 /*[clinic end generated code: output=e7e721c26ce7aad7 input=57f9e177401e5e1e]*/
 {
-    PyObject *dict = self->md_dict;
-    if (dict == NULL) {
-        dict = PyDict_New();
-        if (dict == NULL)
-            return -1;
-        self->md_dict = dict;
-    }
-    if (module_init_dict(self, dict, name, doc) < 0)
-        return -1;
-
     // (elsa) ADDED THIS
     PyInterpreterState *interp = _PyInterpreterState_Get();
     if (interp->md_ids.sp >= 10) {
@@ -714,6 +704,16 @@ module___init___impl(PyModuleObject *self, PyObject *name, PyObject *doc)
     }
     int64_t id = interp->md_ids.stack[interp->md_ids.sp++]; // TODO find the right place where it should be decremented
     self->md_id = id;
+
+    PyObject *dict = self->md_dict;
+    if (dict == NULL) {
+        dict = PyDict_NewFromPool(id);
+        if (dict == NULL)
+            return -1;
+        self->md_dict = dict;
+    }
+    if (module_init_dict(self, dict, name, doc) < 0)
+        return -1;
 
     // TEST
     PyObject_Print(name, stdout, 0);
