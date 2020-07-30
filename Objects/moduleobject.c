@@ -232,9 +232,6 @@ _PyModule_CreateInitialized(struct PyModuleDef* module, int module_api_version)
     if ((m = (PyModuleObject*)PyModule_New(name)) == NULL)
         return NULL;
 
-    // (elsa) TEST
-    printf("%s(%jd)\n", name, m->md_id);
-
     if (module->m_size > 0) {
         m->md_state = PyMem_MALLOC(module->m_size);
         if (!m->md_state) {
@@ -339,9 +336,6 @@ PyModule_FromDefAndSpec2(struct PyModuleDef* def, PyObject *spec, int module_api
         if (m == NULL) {
             goto error;
         }
-
-        // (elsa) TEST
-        printf("%s(%ld)\n", name, PyModule_GetId(m));
 
     }
 
@@ -702,7 +696,7 @@ module___init___impl(PyModuleObject *self, PyObject *name, PyObject *doc)
         fprintf(stderr, "MODULE IDS STACK OVERFLOW!!\n");
         return -1;
     }
-    int64_t id = interp->md_ids.stack[interp->md_ids.sp++]; // TODO find the right place where it should be decremented
+    int64_t id = interp->md_ids.stack[interp->md_ids.sp++];
     self->md_id = id;
 
     PyObject *dict = self->md_dict;
@@ -714,10 +708,6 @@ module___init___impl(PyModuleObject *self, PyObject *name, PyObject *doc)
     }
     if (module_init_dict(self, dict, name, doc) < 0)
         return -1;
-
-    // TEST
-    PyObject_Print(name, stdout, 0);
-    printf("(%jd)\n", id);
 
     return 0;
 }

@@ -1037,18 +1037,11 @@ builtin_exec_impl(PyObject *module, PyObject *source, PyObject *globals,
                 "contain free variables");
             return NULL;
         }
-        // (elsa) TEST
-        /*if (maybe_module != NULL) { // found in sys.module
-            int64_t id = PyModule_GetId(maybe_module);
-            //interp->md_ids.stack[interp->md_ids.sp++] = id;
-            printf("-> start %ld\n", id); 
-        }*/
 
         v = PyEval_EvalCode(source, globals, locals);
 
         if (maybe_module != NULL) {
-            int64_t id = interp->md_ids.stack[--interp->md_ids.sp];
-            printf("-> end %ld\n", id);
+            interp->md_ids.sp--; // Leave scope
         }
     }
     else {

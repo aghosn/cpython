@@ -3262,17 +3262,33 @@ main_loop:
 
         /* ADDED THIS */
         case TARGET(SETUP_SANDBOX): {
+            PyObject *uid = POP();
+            PyObject *id_str = PyObject_Str(uid);
+            if (id_str == NULL) {
+                goto error;
+            }
+            const char *sid = PyUnicode_AsUTF8(id_str);
+
             if (oparg) {
                 PyObject *sys = POP();
                 PyObject *mem = POP();
 
-                printf("in ceval: dependencies are ");
-                PyObject_Print(sandboxes, stdout, 0);
+                printf("sandbox: dependencies are ");
+                PyObject *dep = PyDict_GetItemWithError(sandboxes, uid);
+                if (dep == NULL) {
+                    fprintf(stderr, "Could not find dependency for sandbox\n");
+                }
+                PyObject_Print(dep, stdout, 0);
+                printf("; mem and sys are ");
+                PyObject_Print(mem, stdout, 0);
+                PyObject_Print(sys, stdout, 0);
                 putchar('\n');
 
-                sandbox_prolog(tstate, mem, sys);
+                //sandbox_prolog(uid, mem, sys);
+                sb_prolog(sid);
             } else {
-                sandbox_epilog();
+                //sandbox_epilog();
+                sb_epilog(sid);
             }
             DISPATCH();
         }

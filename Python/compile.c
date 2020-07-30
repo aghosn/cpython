@@ -5009,7 +5009,7 @@ compiler_sandbox(struct compiler *c, stmt_ty s)
     /* Load sandbox arguments on the stack */
     ADDOP_LOAD_CONST(c, s->v.Sandbox.mem);
     ADDOP_LOAD_CONST(c, s->v.Sandbox.sys);
-    //ADDOP_LOAD_CONST(c, s->v.Sandbox.uid);
+    ADDOP_LOAD_CONST(c, s->v.Sandbox.uid);
 
     printf("in compiler: id of sandbox is ");
     PyObject_Print(s->v.Sandbox.uid, stdout, 0);
@@ -5025,6 +5025,7 @@ compiler_sandbox(struct compiler *c, stmt_ty s)
     /* BLOCK code */
     VISIT_SEQ(c, stmt, s->v.Sandbox.body); 
 
+    ADDOP_LOAD_CONST(c, s->v.Sandbox.uid);
     ADDOP_I(c, SETUP_SANDBOX, 0);
     c->c_current_sb_id = NULL;
 

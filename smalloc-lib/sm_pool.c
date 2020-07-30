@@ -153,14 +153,14 @@ int64_t sm_add_mpool(void)
 int sm_release_pools(void)
 {
     for (size_t i = 0; i < pool_list.capacity; ++i) {
-        struct smalloc_mpools m_spool = pool_list.mpools[i];
+        /*struct smalloc_mpools *m_spool = &(pool_list.mpools[i]);
         for (size_t j = 0; j < m_spool.capacity; ++j) {
-            struct smalloc_pool pool = m_spool.pools[j];
-            if (smalloc_verify_pool(&pool) && !sm_release_pool(&pool)) {
+            struct smalloc_pool *pool = &(m_spool.pools[j]);
+            if (smalloc_verify_pool(pool) && !sm_release_pool(pool)) {
                 return 0;
             }
-        }
-        free(m_spool.pools);
+        }*/ // sometimes it crashes, and all it does is setting the memory to zero...
+        free(pool_list.mpools[i].pools);
     }
     free(pool_list.mpools);
     return 1;
@@ -215,4 +215,6 @@ int mpools_initialize(struct smalloc_mpools *m_spools, size_t start, size_t end,
     }
     return 1;
 }
+
+
 

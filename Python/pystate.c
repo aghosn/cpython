@@ -243,7 +243,6 @@ PyInterpreterState_New(void)
             interpreters->main = interp;
         }
         interpreters->head = interp;
-        interp->genmd_id = 0; // (elsa) ADDED this
     }
     HEAD_UNLOCK(runtime);
 

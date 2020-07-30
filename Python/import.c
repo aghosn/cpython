@@ -877,14 +877,6 @@ import_add_module(PyThreadState *tstate, PyObject *name)
     if (m == NULL)
         return NULL;
 
-    // (elsa) TEST: quite horrible and don't even know if a good idea..
-    int64_t id = PyModule_GetId(m);
-    const char *name_str = PyUnicode_AsUTF8(name);
-    printf("%s(%ld)\n", name_str, id);
-    if (!strncmp(name_str, "_frozen_importlib", 20)) {
-        tstate->interp->md_ids.stack[tstate->interp->md_ids.sp++] = id;
-    }
-
     if (PyObject_SetItem(modules, name, m) != 0) {
         Py_DECREF(m);
         return NULL;
@@ -1424,6 +1416,11 @@ PyImport_ImportFrozenModuleObject(PyObject *name)
     ispackage = (size < 0);
     if (ispackage)
         size = -size;
+
+    // (elsa) ADDED THIS since we use the stack in marshal and _frozen_importlib
+    // is not yet a module with its own pool... so "borrow" it on sys
+    tstate->interp->md_ids.sp++;
+
     co = PyMarshal_ReadObjectFromString((const char *)p->code, size);
     if (co == NULL)
         return -1;
