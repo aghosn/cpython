@@ -4,6 +4,7 @@
  * Copyright (c) 2017 Andrey Rys.
  */
 
+#define _GNU_SOURCE
 #include "smalloc_i.h"
 // (elsa) ADDED THESE for calloc/free and mmap
 #include <stdlib.h>
