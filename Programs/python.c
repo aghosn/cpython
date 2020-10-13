@@ -3,6 +3,7 @@
 #include "Python.h"
 #include "pycore_pylifecycle.h"
 #include "smalloc.h"
+#include "liblitterbox.h"
 
 #ifdef MS_WINDOWS
 int
@@ -16,6 +17,9 @@ main(int argc, char **argv)
 {
     /* (elsa) ADDED THIS */
     int ret;
+    /*(aghosn) init the dynamic backend, reads the env-var from go.*/
+    SB_Initialize();
+    register_region = &SB_RegisterRegion; 
     if (!sm_pools_init(100, 10, sysconf(_SC_PAGESIZE))) // TODO have default values somewhere ?
         return 1;
 

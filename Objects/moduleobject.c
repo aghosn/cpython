@@ -6,6 +6,7 @@
 #include "structmember.h"
 
 #include "smalloc.h" // (elsa) ADDED THIS
+#include "liblitterbox.h"
 
 static Py_ssize_t max_module_number;
 
@@ -99,12 +100,11 @@ PyModule_NewObject(PyObject *name)
 
     // (elsa) ADDED THIS
     int64_t id;
-    if ((id = sm_add_mpool()) < 0) {
+    if ((id = sm_add_mpool(PyUnicode_AsUTF8(name))) < 0) {
         fprintf(stderr, "module-object: error while adding a new pool\n");
     }
 
     m = PyObject_GC_NewFromPool(PyModuleObject, &PyModule_Type, id);
-    //m = PyObject_GC_New(PyModuleObject, &PyModule_Type);
 
     if (m == NULL)
         return NULL;
@@ -114,6 +114,9 @@ PyModule_NewObject(PyObject *name)
     m->md_name = NULL;
     m->md_dict = PyDict_NewFromPool(id);
     m->md_id = id; // ADDED THIS
+    assert(name != NULL && PyUnicode_Check(name));
+    //(aghosn) Registration done here allows to keep names as well.
+    SB_RegisterPackageId(PyUnicode_AsUTF8(name), id);
     if (module_init_dict(m, m->md_dict, name, NULL) != 0)
         goto fail;
     PyObject_GC_Track(m);
@@ -698,6 +701,10 @@ module___init___impl(PyModuleObject *self, PyObject *name, PyObject *doc)
     }
     int64_t id = interp->md_ids.stack[interp->md_ids.sp++];
     self->md_id = id;
+    //(aghosn) Registering the package id.
+    if (name != NULL && PyUnicode_Check(name)) {
+      SB_RegisterPackageId(PyUnicode_AsUTF8(name), id);
+    }
 
     PyObject *dict = self->md_dict;
     if (dict == NULL) {

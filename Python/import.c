@@ -1737,7 +1737,6 @@ import_find_and_load(PyThreadState *tstate, PyObject *abs_name)
     int import_time = interp->config.import_time;
     static int import_level;
     static _PyTime_t accumulated;
-
     _PyTime_t t1 = 0, accumulated_copy = accumulated;
 
     PyObject *sys_path = PySys_GetObject("path");
@@ -1772,6 +1771,7 @@ import_find_and_load(PyThreadState *tstate, PyObject *abs_name)
     if (PyDTrace_IMPORT_FIND_LOAD_START_ENABLED())
         PyDTrace_IMPORT_FIND_LOAD_START((char *)PyUnicode_AsUTF8(abs_name));
 
+    //(aghosn) this is where the import happens for user code.
     mod = _PyObject_CallMethodIdObjArgs(interp->importlib,
                                         &PyId__find_and_load, abs_name,
                                         interp->import_func, NULL);

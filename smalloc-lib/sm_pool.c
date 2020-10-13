@@ -15,6 +15,10 @@
 struct smalloc_pool smalloc_curr_pool;
 struct smalloc_pool_list pool_list; // (elsa) ADDED THIS
 
+// callback to register a new region, arguments are: 
+// pkg id, addr start, size or region, protection.
+void (*register_region)(const char*, int, void*, size_t) = NULL;
+
 struct smalloc_pool *sm_add_pool(struct smalloc_mpools *, size_t);
 int mpools_initialize(struct smalloc_mpools *, size_t, size_t,
         size_t, size_t, smalloc_oom_handler);
@@ -113,8 +117,7 @@ int sm_pools_init(size_t outer_capacity, size_t inner_capacity, size_t pools_siz
     return 1;
 }
 
-//int sm_add_mpool(int64_t id)
-int64_t sm_add_mpool(void)
+int64_t sm_add_mpool(const char* name)
 {
     uint64_t id;
     if (pool_list.free_ids.sp > 0) {
@@ -148,6 +151,10 @@ int64_t sm_add_mpool(void)
         return -1;
     }
     m_spool->next++;
+    if (register_region != NULL) {
+       struct smalloc_pool *spool = &(m_spool->pools[m_spool->next-1]);
+       register_region(name, id, spool->pool, spool->pool_size);
+    }
     return id;
 }
 

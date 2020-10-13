@@ -14,6 +14,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+extern void (*register_region)(const char*, int, void*, size_t); 
+
 struct smalloc_pool;
 struct smalloc_mpools;
 
@@ -24,7 +26,7 @@ struct smalloc_pool {
 	void *pool; /* pointer to your pool */
 	size_t pool_size; /* it's size. Must be aligned with sm_align_pool. */
 	int do_zero; /* zero pool before use and all the new allocations from it. */
-    size_t num_elems;
+  size_t num_elems;
 };
 
 struct smalloc_mpools {
@@ -67,8 +69,7 @@ int sm_release_default_pool(void);
 // (elsa) ADDED THESE
 // they all work on the default pool_list
 int sm_pools_init(size_t, size_t, size_t);
-//int sm_add_mpool(int64_t);
-int64_t sm_add_mpool(void);
+int64_t sm_add_mpool(const char* name);
 int sm_release_pools(void);
 
 void *sm_malloc_from_pool(int64_t, size_t);

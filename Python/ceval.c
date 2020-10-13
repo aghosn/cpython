@@ -27,7 +27,7 @@
 #include "setobject.h"
 #include "structmember.h"
 
-#include "sandbox.h" /* ADDED THIS */
+#include "liblitterbox.h"
 
 #include <ctype.h>
 
@@ -3272,23 +3272,17 @@ main_loop:
             if (oparg) {
                 PyObject *sys = POP();
                 PyObject *mem = POP();
-
-                printf("sandbox: dependencies are ");
                 PyObject *dep = PyDict_GetItemWithError(sandboxes, uid);
                 if (dep == NULL) {
                     fprintf(stderr, "Could not find dependency for sandbox\n");
+                    exit(1);
                 }
-                PyObject_Print(dep, stdout, 0);
-                printf("; mem and sys are ");
-                PyObject_Print(mem, stdout, 0);
-                PyObject_Print(sys, stdout, 0);
-                putchar('\n');
-
-                //sandbox_prolog(uid, mem, sys);
-                sb_prolog(sid);
+                // Let's register the sandbox.
+                SB_RegisterSandbox((char*)sid,(char*)PyUnicode_AsUTF8(mem),
+                    (char*)PyUnicode_AsUTF8(sys));
+                SB_Prolog((char*)sid);
             } else {
-                //sandbox_epilog();
-                sb_epilog(sid);
+                SB_Epilog((char*)sid);
             }
             DISPATCH();
         }
@@ -5047,11 +5041,11 @@ import_name(PyThreadState *tstate, PyFrameObject *f,
     PyObject *pkgname = _PyDict_GetItemIdWithError(f->f_globals, &PyId___name__);
     PyObject *dep;
 
-    // TODO fix this ugliness
-    /*if (strncmp((char *)((void*)pkgname + 6*sizeof(size_t)), "__main__", 32) == 0) {
-        printf("here\n");
-    }*/
+    if (name != NULL && pkgname != NULL) {
+      SB_RegisterDependency((char*)PyUnicode_AsUTF8(pkgname), (char*)PyUnicode_AsUTF8(name));
+    }
 
+    //(aghosn) there is the default import
     if (pkgname != NULL && PyUnicode_Check(pkgname)) {
         dep = PyDict_GetItemWithError(tstate->interp->dependencies, pkgname);
         if (dep == NULL) {

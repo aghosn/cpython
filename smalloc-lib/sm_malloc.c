@@ -4,17 +4,19 @@
  * Copyright (c) 2017 Andrey Rys.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
 #include "smalloc_i.h"
 
 void *sm_malloc_mpool(struct smalloc_mpools *m_spool, size_t n)
 {
-    struct smalloc_pool *spool;
+  struct smalloc_pool *spool;
 	struct smalloc_hdr *basehdr, *shdr, *dhdr;
 	char *s;
 	int found;
 	size_t x;
 
-    spool = &(m_spool->pools[m_spool->next-1]);
+  spool = &(m_spool->pools[m_spool->next-1]);
 
 again:	if (!smalloc_verify_pool(spool)) {
 		errno = EINVAL;
@@ -115,9 +117,10 @@ oom:	if (m_spool->oomfn) {
 void *sm_malloc_from_pool(int64_t id, size_t n)
 {
     if (id >= pool_list.capacity) {
-        // TODO error
+        exit(33);
         return NULL;
     }
+    //fprintf(stderr, "Smallocing with id %ld\n", id);
     return sm_malloc_mpool(&(pool_list.mpools[id]), n);
 }
 

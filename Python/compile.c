@@ -31,6 +31,8 @@
 #include "opcode.h"
 #include "wordcode_helpers.h"
 
+#include "liblitterbox.h"
+
 #define DEFAULT_BLOCK_SIZE 16
 #define DEFAULT_BLOCKS 8
 #define DEFAULT_CODE_SIZE 128
@@ -5044,6 +5046,9 @@ add_sandbox_dependency(expr_ty e, struct compiler *c)
             if (dep_set != NULL) {
                 assert(PySet_Check(dep_set));
                 PySet_Add(dep_set, e->v.Attribute.value->v.Name.id); 
+                long id = PyLong_AsLong(c->c_current_sb_id);
+                char* dep = (char*) PyUnicode_AsUTF8(e->v.Attribute.value->v.Name.id);
+                SB_RegisterSandboxDependency(id, dep);
                 return 1;
             }
         }
