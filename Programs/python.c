@@ -20,6 +20,7 @@ main(int argc, char **argv)
     /*(aghosn) init the dynamic backend, reads the env-var from go.*/
     SB_Initialize();
     register_region = &SB_RegisterRegion; 
+    register_growth = &SB_RegisterGrowth;
     if (!sm_pools_init(100, 10, sysconf(_SC_PAGESIZE))) // TODO have default values somewhere ?
         return 1;
 

@@ -152,6 +152,10 @@ _PyObject_ArenaMmap(void *ctx, size_t size)
     if (ptr == MAP_FAILED)
         return NULL;
     assert(ptr != NULL);
+    //(aghosn) catch the mmap.
+    if (register_growth != NULL) {
+      register_growth(1, ptr, size);
+    }
     return ptr;
 }
 

@@ -18,6 +18,7 @@ struct smalloc_pool_list pool_list; // (elsa) ADDED THIS
 // callback to register a new region, arguments are: 
 // pkg id, addr start, size or region, protection.
 void (*register_region)(const char*, int, void*, size_t) = NULL;
+void (*register_growth)(int, void*, size_t) = NULL;
 
 struct smalloc_pool *sm_add_pool(struct smalloc_mpools *, size_t);
 int mpools_initialize(struct smalloc_mpools *, size_t, size_t,
@@ -195,8 +196,12 @@ struct smalloc_pool *sm_add_pool(struct smalloc_mpools *m_spool, size_t n) // de
     void *memptr = mmap(NULL, m_spool->pools_size, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
     if (!sm_set_pool(spool, memptr, m_spool->pools_size, 0)) {
         fprintf(stderr, "add-pool: invalid memory pointer\n");
+        exit(-1);
         return NULL;
     }
+    //TODO see if this should be 0
+    //register_growth(0, memptr, m_spool->pools_size);
+    register_growth(1, memptr, m_spool->pools_size);
     return spool;
 }
 

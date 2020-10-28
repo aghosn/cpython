@@ -15,6 +15,7 @@
 #include <stdint.h>
 
 extern void (*register_region)(const char*, int, void*, size_t); 
+extern void (*register_growth)(int, void*, size_t);
 
 struct smalloc_pool;
 struct smalloc_mpools;

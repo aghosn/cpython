@@ -81,3 +81,45 @@ The `co_sandboxes` is a dict tracking the dependencies.
 Sandbox id is a PyLong object, we can cast it and use that.
 
 Okay so os.path is replaced by posixpath
+Okay it is inside the full address space but not in the rest.
+
+Stuck in a loop apparently that keeps calling run...
+Where does it come from?
+Apparently KVM_INTERNAL_ERROR
+System call is failing apparently.
+Okay so it's setting the wrong cr3.
+
+Or the CR3 is not mapped for some reason. 
+Let's see, we have a physical address that is: fa000
+Let's look a the user memory regions.
+
+# 22.10.2020
+
+Cannot return from the sandbox apparently. 
+So two problems so far
+
+1. switching cr3 is wrong
+2. Returning from the sandbox fails with sigaltstack and does an abort.
+
+Okay so apparently with a redpill switch it works.
+
+Maybe here: `[1] id 10824 name python from 0x00007ffff7bb61c0 in runtime.reflectcallmove+80 at /home/aghosn/Documents/Programs/DCSL/sandboxing/code/Go/go/src/runtime/mbarrier.go:230`
+
+Okay so sigaltstack returns -1 from the handler.
+Let's look at what it is supposed to return otherwise.
+
+Okay so it fails inside the VM, don't know why, but it sucks. Maybe try to do it in tryRedpill? unminit apparently is the secret. 
+Fook.
+If it doesn't work should probably move to MPK instead.
+
+Okay so sigprocmask called from the VM seems to be doing weird shit.
+Apparently still get MMIO
+So not the issue. but somewhere in fileops.1183
+
+```
+if regs.Rax == syscall.SYS_RT_SIGPROCMASK {
+	regs.Rax = 0
+	regs.Rdx = 0
+	return syshandlerValid
+}
+```
