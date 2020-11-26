@@ -155,6 +155,8 @@ int64_t sm_add_mpool(const char* name)
     if (register_region != NULL) {
        struct smalloc_pool *spool = &(m_spool->pools[m_spool->next-1]);
        register_region(name, id, spool->pool, spool->pool_size);
+    } else {
+      fprintf(stderr, "Why am I so NULL?\n");
     }
     return id;
 }

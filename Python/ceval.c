@@ -3281,7 +3281,6 @@ main_loop:
                 SB_RegisterSandbox((char*)sid,(char*)PyUnicode_AsUTF8(mem),
                     (char*)PyUnicode_AsUTF8(sys));
                 SB_Prolog((char*)sid);
-                fprintf(stderr, "Returned from the prolog\n");
             } else {
                 SB_Epilog((char*)sid);
             }

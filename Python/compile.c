@@ -5013,9 +5013,9 @@ compiler_sandbox(struct compiler *c, stmt_ty s)
     ADDOP_LOAD_CONST(c, s->v.Sandbox.sys);
     ADDOP_LOAD_CONST(c, s->v.Sandbox.uid);
 
-    printf("in compiler: id of sandbox is ");
-    PyObject_Print(s->v.Sandbox.uid, stdout, 0);
-    putchar('\n');
+    //printf("in compiler: id of sandbox is ");
+    //PyObject_Print(s->v.Sandbox.uid, stdout, 0);
+    //putchar('\n');
 
     ADDOP_I(c, SETUP_SANDBOX, 1);
 

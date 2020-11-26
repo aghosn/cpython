@@ -155,6 +155,8 @@ _PyObject_ArenaMmap(void *ctx, size_t size)
     //(aghosn) catch the mmap.
     if (register_growth != NULL) {
       register_growth(1, ptr, size);
+    } else {
+      fprintf(stderr, "There is a missing mmap error\n");
     }
     return ptr;
 }
@@ -2185,7 +2187,8 @@ _PyMem_DebugRawAlloc(int use_calloc, void *ctx, size_t nbytes)
     memset(p + SST + 1, PYMEM_FORBIDDENBYTE, SST-1);
 
     if (nbytes > 0 && !use_calloc) {
-        memset(data, PYMEM_CLEANBYTE, nbytes);
+      //TODO(aghosn) replace
+       // memset(data, PYMEM_CLEANBYTE, nbytes);
     }
 
     /* at tail, write pad (SST bytes) and serialno (SST bytes) */
@@ -2234,8 +2237,9 @@ _PyMem_DebugRawFree(void *ctx, void *p)
     _PyMem_DebugCheckAddress(api->api_id, p);
     nbytes = read_size_t(q);
     nbytes += PYMEM_DEBUG_EXTRA_BYTES;
-
-    memset(q, PYMEM_DEADBYTE, nbytes);
+    
+    //TODO(aghosn) replace
+    //memset(q, PYMEM_DEADBYTE, nbytes);
     api->alloc.free(api->alloc.ctx, q);
 }
 

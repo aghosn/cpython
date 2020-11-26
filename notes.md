@@ -123,3 +123,65 @@ if regs.Rax == syscall.SYS_RT_SIGPROCMASK {
 	return syshandlerValid
 }
 ```
+
+Okay so problem with memset that uses avx2 extensions (vdmovqu). 
+Disabled the memset for the moment.
+
+Now the other issue is a second segfault that happens sometime before the second bluepill.
+
+Maybe try to initialize God right before.
+
+Problem comes from something we disable.
+Apparently it's sys
+Apparently the size is not aligned either fuck.
+
+Oh and there is a fucking segfault in page walk. Something is mapped in godas but not the sandbox which then faults.
+
+Where the bug happens
+
+```
+goroutine 17 [running, locked to thread]:
+gosb/vtx/platform/ring0/pagetables.(*PageTables).pageWalk(0xc0000d8140, 0x7ffff4017000, 0x7fffeee92000, 0x7fffeeed1fff, 0x3, 0xc000127c08)
+	/home/aghosn/Documents/Programs/DCSL/sandboxing/code/Go/go/src/gosb/vtx/platform/ring0/pagetables/gosb_walker.go:61 +0x46f
+gosb/vtx/platform/ring0/pagetables.(*PageTables).Map(...)
+	/home/aghosn/Documents/Programs/DCSL/sandboxing/code/Go/go/src/gosb/vtx/platform/ring0/pagetables/gosb_walker.go:40
+gosb/vtx/platform/memview.(*MemoryRegion).ApplyRange(0xc000098580, 0x7fffeee92000, 0x40000, 0x36)
+	/home/aghosn/Documents/Programs/DCSL/sandboxing/code/Go/go/src/gosb/vtx/platform/memview/memview.go:475 +0x12e
+gosb/vtx/platform/memview.(*AddressSpace).Extend(0xc000100000, 0x0, 0xc000098580, 0x7fffeee92000, 0x40000, 0xffffffffffffff36)
+	/home/aghosn/Documents/Programs/DCSL/sandboxing/code/Go/go/src/gosb/vtx/platform/memview/memview.go:283 +0x187
+gosb/vtx.DRuntimeGrowth(0x1, 0x0, 0x7fffeee92000, 0x40000)
+	/home/aghosn/Documents/Programs/DCSL/sandboxing/code/Go/go/src/gosb/vtx/dynamic.go:113 +0xf1
+gosb.ExtendSpace(0xc000020001, 0x7fffeee92000, 0x40000)
+	/home/aghosn/Documents/Programs/DCSL/sandboxing/code/Go/go/src/gosb/dynamic.go:255 +0xc0
+main.SB_RegisterGrowth(...)
+	/home/aghosn/Documents/Programs/DCSL/LitterBox2/src/main.go:107
+main._cgoexpwrap_1db9a6c5b2e1_SB_RegisterGrowth(0x1, 0x7fffeee92000, 0x40000)
+	_cgo_gotypes.go:170 +0x47
+```
+
+Solved the above by forcing it to execute in the host.
+
+Now apprently sometimes the memview argument to the vcpu is nil.
+
+Apparenlty triggered when we are in `_PyMem_DebugRawAlloc` and allocate new pool.
+
+Can it be rtsigprocmask?
+
+Okay so it's always the same page that gets hit. Why? What's there?
+A pyunicode???
+
+Check if address was used inside the free allocator.
+Check the extend otherwise? This might be the issue, it might have triggered a remapping?
+Implement another method to go do it outside? Touching the page does not seem to solve the issue.
+
+Okay so the register_growth is never executed before the sandbox gets triggered, and never called before.
+
+```
+>>> p 'gosb/vtx.DynTots'
+$1 = 132
+>>> p 'gosb/vtx.DynSkipped'
+$2 = 125
+>>> p 'gosb/vtx.DynOut'
+$3 = 0
+>>> 
+```
