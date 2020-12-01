@@ -2188,7 +2188,7 @@ _PyMem_DebugRawAlloc(int use_calloc, void *ctx, size_t nbytes)
 
     if (nbytes > 0 && !use_calloc) {
       //TODO(aghosn) replace
-       // memset(data, PYMEM_CLEANBYTE, nbytes);
+      memset(data, PYMEM_CLEANBYTE, nbytes);
     }
 
     /* at tail, write pad (SST bytes) and serialno (SST bytes) */
@@ -2239,7 +2239,7 @@ _PyMem_DebugRawFree(void *ctx, void *p)
     nbytes += PYMEM_DEBUG_EXTRA_BYTES;
     
     //TODO(aghosn) replace
-    //memset(q, PYMEM_DEADBYTE, nbytes);
+    memset(q, PYMEM_DEADBYTE, nbytes);
     api->alloc.free(api->alloc.ctx, q);
 }
 

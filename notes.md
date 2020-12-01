@@ -185,3 +185,8 @@ $2 = 125
 $3 = 0
 >>> 
 ```
+
+Not as slow as before, but still pretty slow 4x slower for some reason.
+Must be syscalls I guess. Let's check that out. 
+Avoid sig exits????
+Apparently this works.
