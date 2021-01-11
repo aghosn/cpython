@@ -190,3 +190,6 @@ Not as slow as before, but still pretty slow 4x slower for some reason.
 Must be syscalls I guess. Let's check that out. 
 Avoid sig exits????
 Apparently this works.
+
+Okay so I have the key allocation.
+Let's look into why I have duplicates in the packages.

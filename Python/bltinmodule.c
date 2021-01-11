@@ -988,7 +988,10 @@ builtin_exec_impl(PyObject *module, PyObject *source, PyObject *globals,
     _Py_IDENTIFIER(__name__);
     PyInterpreterState *interp = _PyInterpreterState_Get();
     PyObject *md_name = _PyDict_GetItemIdWithError(globals, &PyId___name__);
-    PyObject *maybe_module = PyDict_GetItemWithError(interp->modules, md_name);
+    PyObject *maybe_module = NULL;
+    if (md_name != NULL) {
+     maybe_module =  PyDict_GetItemWithError(interp->modules, md_name);
+    }
 
     if (globals == Py_None) {
         globals = PyEval_GetGlobals();

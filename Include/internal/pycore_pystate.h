@@ -88,7 +88,7 @@ struct _is {
     PyObject *dependencies;
 
     struct {
-        int64_t stack[10]; // TODO which value ?? make it not magic
+        int64_t stack[200]; // TODO which value ?? make it not magic
         size_t sp;
     } md_ids;
     /* ----------------- */

@@ -695,7 +695,7 @@ module___init___impl(PyModuleObject *self, PyObject *name, PyObject *doc)
 {
     // (elsa) ADDED THIS
     PyInterpreterState *interp = _PyInterpreterState_Get();
-    if (interp->md_ids.sp >= 10) {
+    if (interp->md_ids.sp >= 200) {
         fprintf(stderr, "MODULE IDS STACK OVERFLOW!!\n");
         return -1;
     }
